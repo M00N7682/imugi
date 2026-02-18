@@ -1,0 +1,68 @@
+{
+  "name": "imugi",
+  "version": "1.0.0",
+  "description": "Design to Code — AI-powered frontend builder with visual verification",
+  "type": "module",
+  "bin": {
+    "imugi": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "design-to-code",
+    "ai",
+    "frontend",
+    "visual-comparison",
+    "ssim",
+    "playwright",
+    "cli",
+    "mcp",
+    "design",
+    "screenshot",
+    "pixel-perfect"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/M00N7682/imugi.git"
+  },
+  "homepage": "https://github.com/M00N7682/imugi#readme",
+  "bugs": {
+    "url": "https://github.com/M00N7682/imugi/issues"
+  },
+  "author": "M00N7682",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@inkjs/ui": "^2.0.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "commander": "^13.1.0",
+    "ink": "^5.2.0",
+    "open": "^10.1.0",
+    "pixelmatch": "^6.0.0",
+    "playwright": "^1.50.0",
+    "pngjs": "^7.0.0",
+    "react": "^18.3.1",
+    "sharp": "^0.33.5",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^18.3.18",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  }
+}
