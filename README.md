@@ -89,10 +89,10 @@ That's it. imugi captures, compares, and patches until the output matches your d
 A terminal-inspired hero section — designed in Pencil, implemented by imugi.
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/example-implementation.png" alt="imugi example — design to code result" width="720" />
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/example-comparison.png" alt="imugi — design vs implementation comparison" width="820" />
 </div>
 
-> Dark mode terminal aesthetic with JetBrains Mono, `#10B981` green accent, nav bar, hero CTA, 4-step flow diagram, MCP tools grid, and footer — all pixel-matched from the original design.
+> Dark mode terminal aesthetic with JetBrains Mono, `#10B981` green accent, nav bar, hero CTA, 4-step flow diagram, MCP tools grid, and footer — pixel-perfect match from design to code.
 
 See the full example at [`examples/hero-section/`](examples/hero-section/).
 
