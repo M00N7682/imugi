@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>imugi — give ai eyes to see your frontend</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0A0A0A;
+    color: #FAFAFA;
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+  }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 80px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-prompt { font-size: 20px; font-weight: 700; color: #10B981; }
+  .nav-logo { font-size: 18px; font-weight: 500; color: #FAFAFA; }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .nav-link { font-size: 13px; color: #6B7280; text-decoration: none; }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px;
+    background: #10B981;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #0A0A0A;
+    cursor: pointer;
+  }
+
+  /* Hero */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 100px 80px 80px;
+    gap: 40px;
+  }
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid #2a2a2a;
+  }
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+  .badge-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #6B7280;
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .title-prompt { font-size: 56px; font-weight: 700; color: #10B981; }
+  .title-text {
+    font-size: 56px;
+    font-weight: 700;
+    color: #FAFAFA;
+    text-align: center;
+    width: 800px;
+  }
+  .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: #6B7280;
+    text-align: center;
+    width: 700px;
+    line-height: 1.6;
+  }
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .cta-primary {
+    display: flex;
+    align-items: center;
+    padding: 14px 32px;
+    background: #10B981;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0A0A0A;
+    cursor: pointer;
+  }
+  .cta-secondary {
+    display: flex;
+    align-items: center;
+    padding: 14px 32px;
+    border: 1px solid #2a2a2a;
+    background: transparent;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #FAFAFA;
+    cursor: pointer;
+  }
+
+  /* Flow */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 80px;
+    gap: 32px;
+  }
+  .section-title {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #FFFFFF;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    width: 180px;
+    border: 1px solid #2a2a2a;
+  }
+  .step.active { border-color: #10B981; }
+  .step-num { font-size: 28px; font-weight: 700; color: #10B981; }
+  .step-name { font-size: 13px; color: #FAFAFA; }
+  .step-desc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #6B7280;
+    text-align: center;
+    width: 140px;
+  }
+  .arrow {
+    font-size: 14px;
+    color: #4B5563;
+    padding: 0 4px;
+    white-space: pre;
+  }
+
+  /* Metrics */
+  .metrics {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 80px;
+    gap: 24px;
+  }
+  .metrics-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+  }
+  .metric-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    flex: 1;
+    border: 1px solid #2a2a2a;
+  }
+  .metric-label { font-size: 12px; color: #10B981; }
+  .metric-desc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #6B7280;
+  }
+
+  /* Footer */
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 80px;
+    border-top: 1px solid #2a2a2a;
+  }
+  .footer-left { font-size: 12px; color: #4B5563; }
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .footer-link { font-size: 12px; color: #6B7280; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-left">
+    <span class="nav-prompt">&gt;</span>
+    <span class="nav-logo">imugi</span>
+  </div>
+  <div class="nav-right">
+    <a href="#" class="nav-link">docs</a>
+    <a href="#" class="nav-link">github</a>
+    <a href="#" class="nav-link">npm</a>
+    <button class="nav-btn">$ npm install -g imugi-ai</button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge">
+    <div class="badge-dot"></div>
+    <span class="badge-text">v1.0 — now available on npm</span>
+  </div>
+  <div class="title-row">
+    <span class="title-prompt">&gt;</span>
+    <h1 class="title-text">give ai eyes to see<br>your frontend</h1>
+  </div>
+  <p class="subtitle">// design-to-code with visual verification. imugi captures screenshots,<br>// compares pixel-by-pixel, and iterates until the code matches your design.</p>
+  <div class="cta-row">
+    <button class="cta-primary">get started</button>
+    <button class="cta-secondary">view on github</button>
+  </div>
+</section>
+
+<section class="flow">
+  <span class="section-title">// how_it_works</span>
+  <div class="flow-row">
+    <div class="step">
+      <span class="step-num">01</span>
+      <span class="step-name">design/</span>
+      <span class="step-desc">input your design image</span>
+    </div>
+    <span class="arrow">  &gt;&gt;  </span>
+    <div class="step">
+      <span class="step-num">02</span>
+      <span class="step-name">capture/</span>
+      <span class="step-desc">screenshot live output</span>
+    </div>
+    <span class="arrow">  &gt;&gt;  </span>
+    <div class="step active">
+      <span class="step-num">03</span>
+      <span class="step-name">compare/</span>
+      <span class="step-desc">ssim + pixel diff analysis</span>
+    </div>
+    <span class="arrow">  &gt;&gt;  </span>
+    <div class="step">
+      <span class="step-num">04</span>
+      <span class="step-name">patch/</span>
+      <span class="step-desc">auto-fix until 95%+ match</span>
+    </div>
+  </div>
+</section>
+
+<section class="metrics">
+  <span class="section-title">// mcp_tools</span>
+  <div class="metrics-row">
+    <div class="metric-card">
+      <span class="metric-label">imugi_capture</span>
+      <span class="metric-desc">screenshot any url via headless chromium</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">imugi_compare</span>
+      <span class="metric-desc">ssim + pixel diff with heatmap output</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">imugi_analyze</span>
+      <span class="metric-desc">diff regions with fix suggestions</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">imugi_detect</span>
+      <span class="metric-desc">auto-detect framework, css, language</span>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span class="footer-left">&gt; imugi — mit license — 2025</span>
+  <div class="footer-right">
+    <a href="#" class="footer-link">github</a>
+    <a href="#" class="footer-link">npm</a>
+    <a href="#" class="footer-link">docs</a>
+  </div>
+</footer>
+
+</body>
+</html>
