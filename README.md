@@ -84,6 +84,20 @@ That's it. imugi captures, compares, and patches until the output matches your d
 
 ---
 
+## Example: Design to Code
+
+A terminal-inspired hero section — designed in Pencil, implemented by imugi.
+
+<div align="center">
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/example-implementation.png" alt="imugi example — design to code result" width="720" />
+</div>
+
+> Dark mode terminal aesthetic with JetBrains Mono, `#10B981` green accent, nav bar, hero CTA, 4-step flow diagram, MCP tools grid, and footer — all pixel-matched from the original design.
+
+See the full example at [`examples/hero-section/`](examples/hero-section/).
+
+---
+
 ## Features
 
 - **Visual Comparison Engine** — SSIM + pixel diff + Claude Vision scoring with heatmap output
