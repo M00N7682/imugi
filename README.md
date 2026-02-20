@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/hero.png" alt="imugi" width="200" />
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/hero.png" alt="imugi" width="200" />
 
 # imugi
 
@@ -17,7 +17,7 @@
 
 <br />
 
-<img src="./assets/logo.png" alt="imugi logo" width="400" />
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/logo.png" alt="imugi logo" width="400" />
 
 </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "imugi-ai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Design to Code — AI-powered frontend builder with visual verification",
   "type": "module",
   "bin": {
