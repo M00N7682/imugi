@@ -1,10 +1,10 @@
 {
-  "name": "imugi",
+  "name": "imugi-ai",
   "version": "1.0.0",
   "description": "Design to Code — AI-powered frontend builder with visual verification",
   "type": "module",
   "bin": {
-    "imugi": "./dist/cli.js"
+    "imugi": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/M00N7682/imugi.git"
+    "url": "git+https://github.com/M00N7682/imugi.git"
   },
   "homepage": "https://github.com/M00N7682/imugi#readme",
   "bugs": {

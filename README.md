@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="./assets/hero.png" alt="imugi" width="200" />
+
 # imugi
 
-[![npm version](https://img.shields.io/npm/v/imugi?color=cb3837&labelColor=black&style=flat-square)](https://www.npmjs.com/package/imugi)
+[![npm version](https://img.shields.io/npm/v/imugi-ai?color=cb3837&labelColor=black&style=flat-square)](https://www.npmjs.com/package/imugi-ai)
 [![GitHub stars](https://img.shields.io/github/stars/M00N7682/imugi?style=flat-square&color=ffcb47&labelColor=black)](https://github.com/M00N7682/imugi/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?labelColor=black&style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?labelColor=black&style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -12,6 +14,10 @@
 *Design-to-code with visual verification. imugi captures screenshots, compares them pixel-by-pixel against your design, and iterates until the code matches — automatically.*
 
 [Get Started](#quick-start) · [MCP Tools](#mcp-tools) · [Configuration](#configuration) · [Contributing](CONTRIBUTING.md)
+
+<br />
+
+<img src="./assets/logo.png" alt="imugi logo" width="400" />
 
 </div>
 
@@ -48,7 +54,7 @@ imugi uses **SSIM** (Structural Similarity) + **pixelmatch** + **Claude Vision**
 ### Step 1: Install
 
 ```bash
-npm install -g imugi
+npm install -g imugi-ai
 ```
 
 ### Step 2: Add to your AI tool
@@ -60,7 +66,7 @@ Add imugi as an MCP server in your Claude Code or Cursor config:
   "mcpServers": {
     "imugi": {
       "command": "npx",
-      "args": ["-y", "imugi", "mcp"]
+      "args": ["-y", "imugi-ai", "mcp"]
     }
   }
 }
