@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { readFile } from 'fs/promises';
+import { spawn, type ChildProcess } from 'child_process';
+import { createConnection } from 'net';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { compareImages, computeCompositeScore } from '../core/comparator.js';
@@ -9,10 +11,38 @@ import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';
 
+declare const __IMUGI_VERSION__: string;
+
 export async function startMcpServer(): Promise<void> {
+  const spawnedProcesses: ChildProcess[] = [];
+
+  function trackProcess(child: ChildProcess): void {
+    spawnedProcesses.push(child);
+    child.on('exit', () => {
+      const idx = spawnedProcesses.indexOf(child);
+      if (idx !== -1) spawnedProcesses.splice(idx, 1);
+    });
+  }
+
+  function killAllProcesses(): void {
+    for (const child of spawnedProcesses) {
+      if (!child.killed) {
+        child.kill('SIGTERM');
+        setTimeout(() => {
+          if (!child.killed) child.kill('SIGKILL');
+        }, 3000);
+      }
+    }
+    spawnedProcesses.length = 0;
+  }
+
+  process.on('SIGINT', killAllProcesses);
+  process.on('SIGTERM', killAllProcesses);
+  process.on('exit', killAllProcesses);
+
   const server = new McpServer({
     name: 'imugi',
-    version: '1.0.0',
+    version: __IMUGI_VERSION__,
   });
 
   server.tool(
@@ -136,28 +166,37 @@ export async function startMcpServer(): Promise<void> {
 
   server.tool(
     'imugi_serve',
-    'Start a dev server and return the URL (for use with imugi_capture)',
+    'Start a dev server and return the URL (for use with imugi_capture). The server process is tracked and will be cleaned up when the MCP session ends.',
     {
       command: z.string().default('npm run dev').describe('Dev server command'),
       port: z.number().int().default(3000).describe('Expected port'),
       projectDir: z.string().default('.').describe('Project directory'),
     },
     async ({ command, port, projectDir }) => {
-      const { spawn } = await import('child_process');
-      const child = spawn(command.split(' ')[0], command.split(' ').slice(1), {
+      const child = spawn(command, {
         cwd: projectDir,
         shell: true,
         stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, PORT: String(port), BROWSER: 'none' },
       });
 
-      const { createConnection } = await import('net');
+      trackProcess(child);
+
+      let stderr = '';
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+
       const waitForPort = () => new Promise<void>((resolve, reject) => {
         const start = Date.now();
         const check = () => {
+          if (child.killed || child.exitCode !== null) {
+            reject(new Error(`Dev server exited unexpectedly.\nStderr: ${stderr.slice(-500)}`));
+            return;
+          }
           if (Date.now() - start > 30000) {
-            child.kill();
-            reject(new Error('Dev server timeout'));
+            child.kill('SIGTERM');
+            reject(new Error('Dev server timeout (30s)'));
             return;
           }
           const socket = createConnection({ port, host: '127.0.0.1' });

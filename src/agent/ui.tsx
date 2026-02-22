@@ -11,9 +11,11 @@ import { createRenderer, type Renderer } from '../core/renderer.js';
 import { runBoulderLoop } from './loop.js';
 import { agentReducer, initialState, parseUserInput, type AgentAction } from './session.js';
 
+declare const __IMUGI_VERSION__: string;
+
 const Header: FC<{ email: string | null; context: ProjectContext | null }> = ({ email, context }) => (
   <Box flexDirection="column" marginBottom={1}>
-    <Text bold color="cyan">imugi v1.0 — Design to Code</Text>
+    <Text bold color="cyan">imugi v{__IMUGI_VERSION__} — Design to Code</Text>
     <Box gap={2}>
       <Text dimColor>{email ? `Logged in: ${email}` : 'Not authenticated'}</Text>
       {context && (

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
 import { join } from 'path';
+import { readFileSync } from 'fs';
+
+const { version: PKG_VERSION } = JSON.parse(
+  readFileSync(join(import.meta.dirname, '..', '..', 'package.json'), 'utf-8'),
+);
 
 const CLI_PATH = join(import.meta.dirname, '..', '..', 'dist', 'cli.js');
 
@@ -84,7 +89,7 @@ describe('MCP Server E2E', () => {
 
       const result = response.result as { serverInfo?: { name: string; version: string }; capabilities?: Record<string, unknown> };
       expect(result.serverInfo?.name).toBe('imugi');
-      expect(result.serverInfo?.version).toBe('1.0.0');
+      expect(result.serverInfo?.version).toBe(PKG_VERSION);
       expect(result.capabilities).toBeDefined();
     } finally {
       session.kill();

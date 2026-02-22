@@ -51,12 +51,14 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
+declare const __IMUGI_VERSION__: string;
+
 const program = new Command();
 
 program
   .name('imugi')
   .description('Design to Code — AI-powered frontend builder with visual verification')
-  .version('1.0.0')
+  .version(__IMUGI_VERSION__)
   .option('--api-key <key>', 'Anthropic API key')
   .option('--threshold <number>', 'Similarity threshold (0.8-0.99)', parseFloat)
   .option('--max-iterations <number>', 'Maximum iterations', parseInt)
