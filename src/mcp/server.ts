@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from 'child_process';
 import { createConnection } from 'net';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
-import { compareImages, computeCompositeScore } from '../core/comparator.js';
+import { compareImages } from '../core/comparator.js';
 import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';

@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
 import type { AuthResult } from '../agent/auth.js';
 import { createAuthenticatedFetch, refreshAccessToken, saveToken } from '../agent/auth.js';
-import type { TokenResponse, VisionAnalysis } from '../types.js';
+import type { VisionAnalysis } from '../types.js';
 
 export function createClaudeClient(auth: AuthResult): Anthropic {
   if (auth.type === 'api_key') {
@@ -33,12 +33,6 @@ export async function* streamMessage(
     max_tokens: maxTokens,
     messages,
     ...(systemPrompt ? { system: systemPrompt } : {}),
-  });
-
-  let fullText = '';
-
-  stream.on('text', (text) => {
-    fullText += text;
   });
 
   for await (const event of stream) {

@@ -114,7 +114,7 @@ export async function startDevServer(
     await waitForPort(port, timeoutMs);
   } catch (err) {
     child.kill('SIGTERM');
-    throw new Error(`Dev server failed to start: ${(err as Error).message}\nStderr: ${stderr.slice(-500)}`);
+    throw new Error(`Dev server failed to start: ${(err as Error).message}\nStderr: ${stderr.slice(-500)}`, { cause: err });
   }
 
   return {
@@ -198,7 +198,7 @@ export async function resizeToMatch(
 
 export function inferRoute(
   outputFilePath: string,
-  context: ProjectContext,
+  _context: ProjectContext,
 ): string {
   const normalized = outputFilePath.replace(/\\/g, '/');
 

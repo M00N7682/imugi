@@ -7,7 +7,6 @@ import type {
   PatchStrategy,
   IterationRecord,
   IterationCategory,
-  StopReason,
   StrategyRecommendation,
 } from '../types.js';
 import type { ImugiConfig } from '../config/schema.js';

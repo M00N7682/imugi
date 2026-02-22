@@ -9,7 +9,7 @@ import { createClaudeClient } from '../llm/client.js';
 import { detectProjectContext } from '../core/context.js';
 import { createRenderer, type Renderer } from '../core/renderer.js';
 import { runBoulderLoop } from './loop.js';
-import { agentReducer, initialState, parseUserInput, type AgentAction } from './session.js';
+import { agentReducer, initialState, parseUserInput } from './session.js';
 
 declare const __IMUGI_VERSION__: string;
 
@@ -54,8 +54,8 @@ const IterationProgress: FC<{ loop: IterationState }> = ({ loop }) => {
 
 const ImugiApp: FC<{ config: ImugiConfig }> = ({ config }) => {
   const [state, dispatch] = useReducer(agentReducer, initialState);
-  const [inputValue, setInputValue] = useState('');
-  const [auth, setAuth] = useState<AuthResult | null>(null);
+  const [, setInputValue] = useState('');
+  const [, setAuth] = useState<AuthResult | null>(null);
   const [client, setClient] = useState<Anthropic | null>(null);
   const [rendererRef, setRendererRef] = useState<Renderer | null>(null);
   const { exit } = useApp();

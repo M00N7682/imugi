@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { execFile } from 'child_process';
 import { join } from 'path';
-import { writeFile, mkdir, rm } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import sharp from 'sharp';
 
@@ -9,7 +9,7 @@ const CLI_PATH = join(import.meta.dirname, '..', '..', 'dist', 'cli.js');
 
 function runCli(args: string[], options?: { timeout?: number }): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    const child = execFile('node', [CLI_PATH, ...args], {
+    execFile('node', [CLI_PATH, ...args], {
       timeout: options?.timeout ?? 15000,
       env: { ...process.env, NO_COLOR: '1' },
     }, (error, stdout, stderr) => {

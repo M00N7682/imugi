@@ -55,6 +55,9 @@ imugi uses **SSIM** (Structural Similarity) + **pixelmatch** + **Claude Vision**
 
 ```bash
 npm install -g imugi-ai
+
+# Playwright requires a browser binary — install Chromium:
+npx playwright install chromium
 ```
 
 ### Step 2: Add to your AI tool

@@ -14,9 +14,9 @@ import type { ImugiConfig } from '../config/schema.js';
 import type { Renderer } from '../core/renderer.js';
 import { resizeToMatch, inferRoute } from '../core/renderer.js';
 import { compareImages, computeCompositeScore } from '../core/comparator.js';
-import { analyzeDifferences, categorizeIteration, suggestStrategy, buildIterationRecord, generateReportText } from '../core/analyzer.js';
+import { analyzeDifferences, categorizeIteration, suggestStrategy, buildIterationRecord } from '../core/analyzer.js';
 import { sendVisionComparison } from '../llm/client.js';
-import { generateInitialCode, patchCode, writeCodeToFiles, createBackup, rollbackToBackup, readCurrentCode, fixBuildError } from '../core/patcher.js';
+import { generateInitialCode, patchCode, writeCodeToFiles, createBackup, rollbackToBackup } from '../core/patcher.js';
 
 export interface BoulderLoopOptions {
   client: Anthropic;
@@ -85,7 +85,7 @@ export async function runBoulderLoop(options: BoulderLoopOptions): Promise<Bould
   const startTime = Date.now();
 
   let currentCode = options.existingCode ?? null;
-  let filePaths: string[] = [];
+  let filePaths: string[] = []; // eslint-disable-line no-useless-assignment
 
   if (!currentCode) {
     onProgress(createIterationState(0, config.comparison.maxIterations, 'patching', 0, null, 'full_regen', 0, 0, []));
@@ -184,11 +184,9 @@ export async function runBoulderLoop(options: BoulderLoopOptions): Promise<Bould
 
     if (recommendation.shouldRollback && recommendation.rollbackTo !== undefined) {
       currentCode = await rollbackToBackup(String(recommendation.rollbackTo), projectDir);
-      filePaths = Array.from(currentCode.keys());
-      strategy = recommendation.strategy;
-    } else {
-      strategy = recommendation.strategy;
+      filePaths = Array.from(currentCode.keys()); // eslint-disable-line no-useless-assignment
     }
+    strategy = recommendation.strategy;
 
     onProgress(createIterationState(iteration, config.comparison.maxIterations, 'patching', compositeScore, previousScore, strategy, comparison.diffRegions.length, Date.now() - startTime, history));
 

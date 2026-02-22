@@ -2,15 +2,14 @@ import { Command } from 'commander';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { loadConfig } from './config/loader.js';
-import { ensureAuthenticated, logout, loadStoredToken, type AuthResult } from './agent/auth.js';
+import { ensureAuthenticated, logout, loadStoredToken } from './agent/auth.js';
 import { startMcpServer } from './mcp/server.js';
 import { createClaudeClient } from './llm/client.js';
 import { detectProjectContext } from './core/context.js';
-import { createRenderer, resizeToMatch, inferRoute } from './core/renderer.js';
+import { createRenderer, resizeToMatch } from './core/renderer.js';
 import { compareImages } from './core/comparator.js';
 import { analyzeDifferences, generateReportText } from './core/analyzer.js';
 import { runBoulderLoop } from './agent/loop.js';
-import { generateInitialCode, writeCodeToFiles } from './core/patcher.js';
 import sharp from 'sharp';
 
 process.on('unhandledRejection', (reason) => {

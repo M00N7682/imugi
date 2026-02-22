@@ -62,7 +62,7 @@ async function loadFileConfig(configPath: string): Promise<Record<string, unknow
     if (error.code === 'ENOENT') {
       return {};
     }
-    throw new Error(`Failed to read config file ${configPath}: ${error.message}`);
+    throw new Error(`Failed to read config file ${configPath}: ${error.message}`, { cause: err });
   }
 }
 
@@ -83,6 +83,6 @@ export async function loadConfig(options?: {
     return ImugiConfigSchema.parse(merged);
   } catch (err: unknown) {
     const error = err as Error;
-    throw new Error(`Invalid configuration: ${error.message}`);
+    throw new Error(`Invalid configuration: ${error.message}`, { cause: err });
   }
 }
