@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440, initial-scale=1">
+<title>Bloom - Wellness Landing</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #fff; color: #18181B; width: 1440px; }
+h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 80px; }
+.nav-logo { display: flex; align-items: center; gap: 10px; }
+.nav-logo-circle { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(180deg, #8B5CF6, #F472B6); }
+.nav-logo span { font-family: 'Plus Jakarta Sans'; font-size: 22px; font-weight: 800; }
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links a { text-decoration: none; color: #71717A; font-size: 15px; font-weight: 500; }
+.nav-cta { padding: 12px 28px; border-radius: 100px; background: #8B5CF6; color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; }
+
+.hero { display: flex; flex-direction: column; align-items: center; padding: 80px 80px 60px; gap: 32px; background: linear-gradient(to bottom, #FFFFFF, #F5F3FF 70%, #EDE9FE); }
+.hero-badge { display: flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 100px; background: rgba(139,92,246,0.12); }
+.hero-badge svg { width: 16px; height: 16px; fill: #8B5CF6; }
+.hero-badge span { font-size: 13px; font-weight: 600; color: #8B5CF6; }
+.hero h1 { font-size: 56px; font-weight: 800; text-align: center; line-height: 1.1; max-width: 800px; }
+.hero p { font-size: 18px; color: #71717A; text-align: center; max-width: 640px; line-height: 1.5; }
+.hero-ctas { display: flex; gap: 16px; align-items: center; }
+.btn-primary { display: flex; align-items: center; gap: 8px; padding: 16px 36px; border-radius: 100px; background: #8B5CF6; color: #fff; font-size: 16px; font-weight: 600; text-decoration: none; }
+.btn-primary svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; }
+.btn-secondary { display: flex; align-items: center; gap: 8px; padding: 16px 36px; border-radius: 100px; border: 2px solid #D4D4D8; color: #18181B; font-size: 16px; font-weight: 600; text-decoration: none; background: transparent; }
+.btn-secondary svg { width: 18px; height: 18px; fill: #8B5CF6; stroke: none; }
+.trust-row { display: flex; align-items: center; gap: 6px; }
+.trust-row .star { width: 20px; height: 20px; fill: #FBBF24; }
+.trust-row span { font-size: 14px; color: #71717A; font-weight: 500; margin-left: 18px; }
+
+.features { display: flex; flex-direction: column; align-items: center; padding: 80px; gap: 48px; }
+.feat-header { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.feat-badge { padding: 6px 16px; border-radius: 100px; background: rgba(20,184,166,0.12); font-size: 13px; font-weight: 600; color: #14B8A6; }
+.feat-header h2 { font-size: 40px; font-weight: 800; }
+.feat-header p { font-size: 18px; color: #71717A; }
+.feat-grid { display: flex; gap: 24px; width: 100%; }
+.feat-card { flex: 1; background: #F4F4F5; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+.feat-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+.feat-icon.purple { background: linear-gradient(180deg, #8B5CF6, #A78BFA); }
+.feat-icon.teal { background: linear-gradient(180deg, #14B8A6, #5EEAD4); }
+.feat-icon.pink { background: linear-gradient(180deg, #F472B6, #FB923C); }
+.feat-icon svg { width: 28px; height: 28px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feat-card h3 { font-size: 20px; font-weight: 700; }
+.feat-card p { font-size: 15px; color: #71717A; line-height: 1.5; }
+
+.stats { display: flex; justify-content: space-around; padding: 60px 80px; background: linear-gradient(90deg, #8B5CF6, #7C3AED); }
+.stat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.stat h2 { font-size: 44px; font-weight: 800; color: #fff; }
+.stat span { font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.7); }
+
+.cta-section { display: flex; flex-direction: column; align-items: center; padding: 80px; gap: 32px; background: #FAFAFA; }
+.cta-section h2 { font-size: 40px; font-weight: 800; text-align: center; }
+.cta-section > p { font-size: 18px; color: #71717A; text-align: center; max-width: 560px; line-height: 1.5; }
+.cta-big { display: flex; align-items: center; gap: 10px; padding: 18px 48px; border-radius: 100px; background: linear-gradient(90deg, #8B5CF6, #A855F7); color: #fff; font-size: 18px; font-weight: 700; text-decoration: none; }
+.cta-big svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2; }
+.cta-note { font-size: 14px; color: #A1A1AA; }
+
+footer { display: flex; justify-content: space-between; align-items: center; padding: 48px 80px; background: #18181B; }
+.footer-left { display: flex; align-items: center; gap: 10px; }
+.footer-logo { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(180deg, #8B5CF6, #F472B6); }
+.footer-left .name { font-family: 'Plus Jakarta Sans'; font-size: 18px; font-weight: 800; color: #fff; }
+.footer-left .copy { font-size: 13px; color: #71717A; }
+.footer-links { display: flex; gap: 28px; }
+.footer-links a { text-decoration: none; font-size: 14px; font-weight: 500; color: #A1A1AA; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo"><div class="nav-logo-circle"></div><span>Bloom</span></div>
+  <div class="nav-links">
+    <a href="#">Features</a><a href="#">Pricing</a><a href="#">About</a>
+    <a href="#" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">
+    <svg viewBox="0 0 24 24"><path d="M12 2L9.5 8.5 2 12l7.5 3.5L12 22l2.5-6.5L22 12l-7.5-3.5z"/></svg>
+    <span>Trusted by 50,000+ users</span>
+  </div>
+  <h1>Your journey to wellness starts here</h1>
+  <p>Track habits, build routines, and transform your daily life with AI-powered insights that adapt to your unique rhythm.</p>
+  <div class="hero-ctas">
+    <a href="#" class="btn-primary">Start Free Trial <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+    <a href="#" class="btn-secondary"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Watch Demo</a>
+  </div>
+  <div class="trust-row">
+    <svg class="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <svg class="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <svg class="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <svg class="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <svg class="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <span>4.9/5 from 12,000+ reviews</span>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feat-header">
+    <span class="feat-badge">Features</span>
+    <h2>Everything you need to thrive</h2>
+    <p>Simple tools, powerful results. Build habits that last.</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon purple"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+      <h3>Smart Goals</h3>
+      <p>AI-powered goal setting that adapts to your progress and suggests micro-adjustments.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon teal"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <h3>Health Tracking</h3>
+      <p>Monitor sleep, exercise, nutrition, and mindfulness all in one beautiful dashboard.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon pink"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      <h3>Mindful Moments</h3>
+      <p>Guided breathing, meditation timers, and gratitude journaling built right in.</p>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat"><h2>50K+</h2><span>Active Users</span></div>
+  <div class="stat"><h2>2M+</h2><span>Habits Tracked</span></div>
+  <div class="stat"><h2>94%</h2><span>Success Rate</span></div>
+  <div class="stat"><h2>4.9</h2><span>App Rating</span></div>
+</section>
+
+<section class="cta-section">
+  <h2>Ready to transform your life?</h2>
+  <p>Join 50,000+ people who already made wellness a habit. Start your free 14-day trial today.</p>
+  <a href="#" class="cta-big">Get Started Free <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  <span class="cta-note">No credit card required · Cancel anytime</span>
+</section>
+
+<footer>
+  <div class="footer-left">
+    <div class="footer-logo"></div>
+    <span class="name">Bloom</span>
+    <span class="copy">© 2026 All rights reserved.</span>
+  </div>
+  <div class="footer-links">
+    <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Twitter</a>
+  </div>
+</footer>
+</body>
+</html>

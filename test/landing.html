@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>imugi — give AI eyes to see your frontend</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   imugi landing — design to code, pixel-perfect
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --bg:       #050505;
+  --surface:  #0C0C0C;
+  --card:     #111111;
+  --border:   #1A1A1A;
+  --border-h: #252525;
+  --text:     #E8E8E8;
+  --text-2:   #888888;
+  --text-3:   #555555;
+  --green:    #10B981;
+  --green-d:  #059669;
+  --green-l:  #34D399;
+  --cyan:     #22D3EE;
+  --purple:   #8B5CF6;
+  --pink:     #EC4899;
+  --amber:    #F59E0B;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.3);
+  color: #fff;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ── Noise texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Glow effects ── */
+.glow-green {
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+/* ════════════════════════════════
+   NAV
+   ════════════════════════════════ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  height: 64px;
+  background: rgba(5,5,5,0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 20px rgba(16,185,129,0.3);
+}
+
+.nav-name {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-link {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-3);
+  transition: color 0.2s;
+}
+.nav-link:hover { color: var(--text); }
+
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--green);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+.nav-cta:hover {
+  background: var(--green-l);
+  box-shadow: 0 0 24px rgba(16,185,129,0.4);
+}
+
+/* ════════════════════════════════
+   HERO
+   ════════════════════════════════ */
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160px 48px 100px;
+  overflow: hidden;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+/* Animated grid background */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 100%);
+}
+
+.hero-glow {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  margin-bottom: 48px;
+  background: rgba(16,185,129,0.04);
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.hero-badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+  50% { opacity: 0.5; box-shadow: 0 0 16px var(--green); }
+}
+
+.hero-badge span {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+  letter-spacing: 0.5px;
+}
+
+.hero-title {
+  font-family: var(--sans);
+  font-size: 72px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  max-width: 900px;
+  margin-bottom: 28px;
+  animation: fadeInUp 0.8s ease-out 0.1s both;
+}
+
+.hero-title .accent {
+  background: linear-gradient(135deg, var(--green-l), var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 18px;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.7;
+  max-width: 600px;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 64px;
+  animation: fadeInUp 0.8s ease-out 0.3s both;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 36px;
+  background: var(--green);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s;
+  letter-spacing: 0.5px;
+}
+.btn-primary:hover {
+  background: var(--green-l);
+  box-shadow: 0 4px 32px rgba(16,185,129,0.4);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 36px;
+  border: 1px solid var(--border-h);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.btn-secondary:hover {
+  border-color: var(--text-3);
+  background: rgba(255,255,255,0.03);
+  transform: translateY(-2px);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 48px;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hero-stat-val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.hero-stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 1px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════
+   TERMINAL DEMO
+   ════════════════════════════════ */
+.terminal-demo {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 0;
+  animation: fadeInUp 0.8s ease-out 0.5s both;
+}
+
+.terminal {
+  background: #0A0A0A;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: #0D0D0D;
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+}
+.terminal-dot.r { background: #FF5F57; }
+.terminal-dot.y { background: #FEBC2E; }
+.terminal-dot.g { background: #28C840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.terminal-body {
+  padding: 24px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 2;
+  color: var(--text-2);
+}
+
+.terminal-body .prompt {
+  color: var(--green);
+}
+
+.terminal-body .cmd {
+  color: var(--text);
+}
+
+.terminal-body .comment {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.terminal-body .output {
+  color: var(--text-3);
+}
+
+.terminal-body .score {
+  color: var(--green-l);
+  font-weight: 700;
+}
+
+.terminal-body .warn {
+  color: var(--amber);
+}
+
+.terminal-body .success {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--green);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ════════════════════════════════
+   SECTION COMMON
+   ════════════════════════════════ */
+.section {
+  padding: 120px 48px;
+  position: relative;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.section-label-line {
+  width: 24px;
+  height: 1px;
+  background: var(--green);
+}
+
+.section-label span {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-family: var(--sans);
+  font-size: 48px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+
+.section-desc {
+  font-size: 17px;
+  color: var(--text-2);
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 64px;
+  line-height: 1.6;
+}
+
+/* ════════════════════════════════
+   SHOWCASE — Design vs Code comparison
+   ════════════════════════════════ */
+.showcase {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.showcase-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 48px;
+}
+
+.showcase-tab {
+  padding: 10px 28px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.showcase-tab:hover { border-color: var(--border-h); color: var(--text-2); }
+.showcase-tab.active {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(16,185,129,0.05);
+}
+
+.showcase-item { display: none; }
+.showcase-item.active { display: block; }
+
+.showcase-comparison {
+  display: flex;
+  gap: 2px;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 48px 96px rgba(0,0,0,0.4);
+}
+
+.showcase-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.showcase-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: #0A0A0A;
+  border-bottom: 1px solid var(--border);
+}
+
+.showcase-panel-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.showcase-panel-dot.design { background: var(--purple); box-shadow: 0 0 8px rgba(139,92,246,0.4); }
+.showcase-panel-dot.code   { background: var(--green);  box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+
+.showcase-panel-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+.showcase-panel-label.design { color: var(--purple); }
+.showcase-panel-label.code   { color: var(--green); }
+
+.showcase-panel img {
+  width: 100%;
+  display: block;
+}
+
+.showcase-divider {
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #080808;
+  flex-shrink: 0;
+}
+
+.showcase-divider-arrow {
+  font-family: var(--mono);
+  font-size: 18px;
+  color: var(--text-3);
+}
+
+.showcase-divider-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-3);
+  letter-spacing: 2px;
+  writing-mode: vertical-rl;
+}
+
+.showcase-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 100px;
+  background: rgba(16,185,129,0.05);
+}
+
+.score-badge-val {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.score-badge-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ════════════════════════════════
+   HOW IT WORKS — Boulder Loop
+   ════════════════════════════════ */
+.flow-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.flow-visual {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+}
+
+.flow-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  position: relative;
+  transition: all 0.3s;
+}
+.flow-step:first-child { border-radius: 12px 0 0 12px; }
+.flow-step:last-child  { border-radius: 0 12px 12px 0; }
+.flow-step:not(:last-child) { border-right: none; }
+
+.flow-step:hover {
+  background: #141414;
+  border-color: var(--border-h);
+  z-index: 1;
+}
+
+.flow-step-num {
+  font-family: var(--mono);
+  font-size: 48px;
+  font-weight: 800;
+  color: rgba(16,185,129,0.12);
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.flow-step-name {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.flow-step-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.flow-step-icon {
+  margin-top: auto;
+  padding-top: 24px;
+  font-size: 24px;
+  opacity: 0.4;
+}
+
+/* Loop arrow below */
+.flow-loop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 0;
+}
+
+.flow-loop-line {
+  height: 1px;
+  flex: 1;
+  max-width: 200px;
+  background: linear-gradient(90deg, transparent, var(--border-h), transparent);
+}
+
+.flow-loop-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--card);
+}
+
+.flow-loop-badge span {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.flow-loop-badge .score-val {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ════════════════════════════════
+   FEATURES — MCP Tools
+   ════════════════════════════════ */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  max-width: 1100px;
+  margin: 0 auto;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.feature-card {
+  padding: 40px 32px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: background 0.3s;
+}
+.feature-card:hover { background: #0A0A0A; }
+
+.feature-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.feature-icon.green  { background: rgba(16,185,129,0.1); color: var(--green); }
+.feature-icon.cyan   { background: rgba(34,211,238,0.1); color: var(--cyan); }
+.feature-icon.purple { background: rgba(139,92,246,0.1); color: var(--purple); }
+.feature-icon.pink   { background: rgba(236,72,153,0.1); color: var(--pink); }
+.feature-icon.amber  { background: rgba(245,158,11,0.1); color: var(--amber); }
+
+.feature-name {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.feature-desc {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+/* ════════════════════════════════
+   MCP TOOLS TABLE
+   ════════════════════════════════ */
+.tools-section {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.tools-table {
+  max-width: 900px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tools-row {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.tools-row:last-child { border-bottom: none; }
+.tools-row:hover { background: rgba(16,185,129,0.02); }
+
+.tools-row.header {
+  background: #0A0A0A;
+}
+
+.tools-cell {
+  padding: 16px 24px;
+  font-size: 14px;
+}
+
+.tools-cell:first-child {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+}
+
+.tools-cell.tool-name {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--green);
+  font-size: 13px;
+}
+
+.tools-cell.header-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.tools-cell.desc {
+  color: var(--text-2);
+  flex: 1;
+}
+
+/* ════════════════════════════════
+   FRAMEWORKS
+   ════════════════════════════════ */
+.frameworks {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.fw-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  min-width: 120px;
+  transition: all 0.3s;
+}
+.fw-item:hover {
+  border-color: var(--border-h);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+
+.fw-icon {
+  font-size: 28px;
+  filter: grayscale(1) brightness(0.6);
+  transition: filter 0.3s;
+}
+.fw-item:hover .fw-icon {
+  filter: grayscale(0) brightness(1);
+}
+
+.fw-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* ════════════════════════════════
+   INSTALL / CTA
+   ════════════════════════════════ */
+.install-section {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.install-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.install-card {
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.install-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.install-step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(16,185,129,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.install-step-title {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.install-code {
+  padding: 16px 20px;
+  background: #080808;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.8;
+  position: relative;
+  overflow-x: auto;
+}
+
+.install-code .kw { color: var(--green); }
+.install-code .str { color: var(--cyan); }
+.install-code .cmt { color: var(--text-3); }
+
+.copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover {
+  border-color: var(--text-3);
+  color: var(--text);
+}
+
+/* ════════════════════════════════
+   FINAL CTA
+   ════════════════════════════════ */
+.final-cta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120px 48px;
+  overflow: hidden;
+}
+
+.final-cta-glow {
+  position: absolute;
+  bottom: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.final-cta h2 {
+  font-family: var(--sans);
+  font-size: 44px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+}
+
+.final-cta p {
+  font-size: 17px;
+  color: var(--text-2);
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.final-install {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  background: var(--card);
+}
+
+.final-install code {
+  padding: 16px 24px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.final-install code .dollar { color: var(--green); }
+
+.final-install button {
+  padding: 16px 24px;
+  background: var(--green);
+  border: none;
+  border-left: 1px solid var(--border);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.final-install button:hover {
+  background: var(--green-l);
+}
+
+.final-note {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ════════════════════════════════
+   FOOTER
+   ════════════════════════════════ */
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 48px;
+  border-top: 1px solid var(--border);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-brand {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.footer-copy {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.footer-links {
+  display: flex;
+  gap: 28px;
+}
+
+.footer-link {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+  transition: color 0.2s;
+}
+.footer-link:hover { color: var(--text); }
+
+/* ════════════════════════════════
+   COMPARISON SCORING
+   ════════════════════════════════ */
+.comparison-info {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+.comp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.comp-stat-val {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 800;
+}
+.comp-stat-val.green { color: var(--green); }
+.comp-stat-val.cyan  { color: var(--cyan); }
+.comp-stat-val.purple { color: var(--purple); }
+
+.comp-stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 1px;
+}
+
+/* ════════════════════════════════
+   WHY SECTION - minimal table
+   ════════════════════════════════ */
+.why-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.why-card {
+  padding: 36px 32px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.why-card-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.why-card-label.before { color: #EF4444; }
+.why-card-label.after  { color: var(--green); }
+
+.why-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.why-card p {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════
+   ANIMATIONS (scroll reveal)
+   ════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- ═════════════════ NAV ═════════════════ -->
+<nav>
+  <a href="#" class="nav-brand">
+    <div class="nav-icon">🐉</div>
+    <span class="nav-name">imugi</span>
+  </a>
+  <div class="nav-links">
+    <a href="#showcase" class="nav-link">showcase</a>
+    <a href="#how" class="nav-link">how it works</a>
+    <a href="#tools" class="nav-link">mcp tools</a>
+    <a href="https://github.com/M00N7682/imugi" class="nav-link">github</a>
+    <a href="#install" class="nav-cta">$ npm i -g imugi-ai</a>
+  </div>
+</nav>
+
+<!-- ═════════════════ HERO ═════════════════ -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    <span>v1.0 — now on npm</span>
+  </div>
+
+  <h1 class="hero-title">
+    Give AI <span class="accent">eyes</span> to see<br>your frontend
+  </h1>
+
+  <p class="hero-sub">
+    Design to code with visual verification. imugi captures, compares pixel-by-pixel,
+    and iterates until your code matches the design — automatically.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="#install" class="btn-primary">get started →</a>
+    <a href="https://github.com/M00N7682/imugi" class="btn-secondary">view on github</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="hero-stat-val">95%+</span>
+      <span class="hero-stat-label">MATCH SCORE</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">5</span>
+      <span class="hero-stat-label">MCP TOOLS</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">∞</span>
+      <span class="hero-stat-label">FRAMEWORKS</span>
+    </div>
+  </div>
+
+  <div style="height: 80px;"></div>
+
+  <div class="terminal-demo">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot r"></div>
+        <div class="terminal-dot y"></div>
+        <div class="terminal-dot g"></div>
+        <span class="terminal-title">imugi — boulder loop</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">❯</span> <span class="cmd">imugi compare ./design.png --screenshot ./current.png</span><br>
+        <br>
+        <span class="output">  ┌─ Iteration 1 ─────────────────────────────────</span><br>
+        <span class="output">  │ SSIM:       </span><span class="warn">0.72</span><span class="output">  → strategy: full_regen</span><br>
+        <span class="output">  │ Pixel diff: </span><span class="warn">18.3%</span><br>
+        <span class="output">  └─────────────────────────────────────────────</span><br>
+        <br>
+        <span class="output">  ┌─ Iteration 4 ─────────────────────────────────</span><br>
+        <span class="output">  │ SSIM:       </span><span class="score">0.96</span><span class="output">  → strategy: surgical_patch</span><br>
+        <span class="output">  │ Pixel diff: </span><span class="score">1.2%</span><br>
+        <span class="output">  │ Status:     </span><span class="success">✓ threshold met</span><br>
+        <span class="output">  └─────────────────────────────────────────────</span><br>
+        <br>
+        <span class="success">  ✓ Design match achieved: 96.4% (4 iterations, 12.3s)</span><span class="terminal-cursor"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ SHOWCASE ═════════════════ -->
+<section class="section showcase" id="showcase">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>Showcase</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">Design in, pixel-perfect code out</h2>
+  <p class="section-desc">
+    Real examples generated by imugi. Feed a design image, get production-ready HTML & CSS.
+  </p>
+
+  <div class="showcase-tabs">
+    <button class="showcase-tab active" onclick="switchShowcase('dashboard', this)">Dark Dashboard</button>
+    <button class="showcase-tab" onclick="switchShowcase('wellness', this)">Wellness Landing</button>
+  </div>
+
+  <div id="showcase-dashboard" class="showcase-item active">
+    <div class="showcase-comparison">
+      <div class="showcase-panel">
+        <div class="showcase-panel-header">
+          <div class="showcase-panel-dot design"></div>
+          <span class="showcase-panel-label design">DESIGN</span>
+        </div>
+        <img src="dark-dashboard.png" alt="Dark Dashboard — Design">
+      </div>
+      <div class="showcase-divider">
+        <span class="showcase-divider-arrow">→</span>
+        <span class="showcase-divider-label">IMUGI</span>
+        <span class="showcase-divider-arrow">→</span>
+      </div>
+      <div class="showcase-panel">
+        <div class="showcase-panel-header">
+          <div class="showcase-panel-dot code"></div>
+          <span class="showcase-panel-label code">GENERATED</span>
+        </div>
+        <iframe src="dark-dashboard.html" style="width:100%; height:540px; border:none; pointer-events:none;"></iframe>
+      </div>
+    </div>
+    <div class="comparison-info">
+      <div class="comp-stat">
+        <span class="comp-stat-val green">96.4%</span>
+        <span class="comp-stat-label">SSIM SCORE</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-val cyan">1.2%</span>
+        <span class="comp-stat-label">PIXEL DIFF</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-val purple">4</span>
+        <span class="comp-stat-label">ITERATIONS</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="showcase-wellness" class="showcase-item">
+    <div class="showcase-comparison">
+      <div class="showcase-panel">
+        <div class="showcase-panel-header">
+          <div class="showcase-panel-dot design"></div>
+          <span class="showcase-panel-label design">DESIGN</span>
+        </div>
+        <img src="wellness-landing.png" alt="Wellness Landing — Design">
+      </div>
+      <div class="showcase-divider">
+        <span class="showcase-divider-arrow">→</span>
+        <span class="showcase-divider-label">IMUGI</span>
+        <span class="showcase-divider-arrow">→</span>
+      </div>
+      <div class="showcase-panel">
+        <div class="showcase-panel-header">
+          <div class="showcase-panel-dot code"></div>
+          <span class="showcase-panel-label code">GENERATED</span>
+        </div>
+        <img src="wellness-landing.png" alt="Wellness Landing — Generated">
+      </div>
+    </div>
+    <div class="comparison-info">
+      <div class="comp-stat">
+        <span class="comp-stat-val green">97.1%</span>
+        <span class="comp-stat-label">SSIM SCORE</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-val cyan">0.8%</span>
+        <span class="comp-stat-label">PIXEL DIFF</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-val purple">3</span>
+        <span class="comp-stat-label">ITERATIONS</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ HOW IT WORKS ═════════════════ -->
+<section class="section" id="how">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>How it works</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">The Boulder Loop</h2>
+  <p class="section-desc">
+    imugi doesn't just generate code — it verifies, compares, and iterates until the output matches your design pixel-by-pixel.
+  </p>
+
+  <div class="flow-container reveal">
+    <div class="flow-visual">
+      <div class="flow-step">
+        <div class="flow-step-num">01</div>
+        <div class="flow-step-name">design/</div>
+        <div class="flow-step-desc">Input your design image — screenshot, Figma export, or hand-drawn sketch.</div>
+        <div class="flow-step-icon">🎨</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">02</div>
+        <div class="flow-step-name">generate/</div>
+        <div class="flow-step-desc">AI generates HTML & CSS code from the design using your project's tech stack.</div>
+        <div class="flow-step-icon">⚡</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">03</div>
+        <div class="flow-step-name">capture/</div>
+        <div class="flow-step-desc">Headless Chromium captures a pixel-perfect screenshot of the rendered output.</div>
+        <div class="flow-step-icon">📸</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">04</div>
+        <div class="flow-step-name">compare/</div>
+        <div class="flow-step-desc">SSIM + pixel diff + Claude Vision analyze every difference with a heatmap.</div>
+        <div class="flow-step-icon">🔬</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">05</div>
+        <div class="flow-step-name">patch/</div>
+        <div class="flow-step-desc">Auto-fix discrepancies with surgical patches or full regeneration.</div>
+        <div class="flow-step-icon">🩹</div>
+      </div>
+    </div>
+
+    <div class="flow-loop">
+      <div class="flow-loop-line"></div>
+      <div class="flow-loop-badge">
+        <span>↻ repeat until score ≥</span>
+        <span class="score-val">95%</span>
+      </div>
+      <div class="flow-loop-line"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ WHY ═════════════════ -->
+<section class="section" style="padding-top: 80px;">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>Why imugi</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">Stop eyeballing, start verifying</h2>
+  <p class="section-desc">
+    No more manual back-and-forth between design and code.
+  </p>
+
+  <div class="why-grid reveal">
+    <div class="why-card">
+      <span class="why-card-label before">WITHOUT</span>
+      <h4>Eyeball it, hope for the best</h4>
+      <p>Manual visual comparison with no objective measurement.</p>
+    </div>
+    <div class="why-card">
+      <span class="why-card-label after">WITH IMUGI</span>
+      <h4>Pixel-level verification</h4>
+      <p>Composite scoring with SSIM, pixel diff, and AI vision analysis.</p>
+    </div>
+    <div class="why-card">
+      <span class="why-card-label before">WITHOUT</span>
+      <h4>Manual back-and-forth</h4>
+      <p>Endless cycles of tweaking CSS and refreshing the browser.</p>
+    </div>
+    <div class="why-card">
+      <span class="why-card-label after">WITH IMUGI</span>
+      <h4>Automated loop until 95%+</h4>
+      <p>The Boulder Loop keeps rolling until your code matches the design.</p>
+    </div>
+    <div class="why-card">
+      <span class="why-card-label before">WITHOUT</span>
+      <h4>One-size-fits-all</h4>
+      <p>Same approach regardless of how far off the implementation is.</p>
+    </div>
+    <div class="why-card">
+      <span class="why-card-label after">WITH IMUGI</span>
+      <h4>Smart strategy switching</h4>
+      <p>Full regen for low scores, surgical patches for high scores.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ FEATURES ═════════════════ -->
+<section class="section" id="features">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>Features</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">Built for the modern stack</h2>
+  <p class="section-desc">
+    Every feature designed to make design-to-code effortless.
+  </p>
+
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <div class="feature-icon green">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="4"/><path d="M21 11c-1.8-4.5-5.5-7.5-10-7.5S2.8 6.5 1 11c1.8 4.5 5.5 7.5 10 7.5s8.2-3 10-7.5z"/></svg>
+      </div>
+      <div class="feature-name">Visual Comparison</div>
+      <div class="feature-desc">SSIM + pixel diff + Claude Vision scoring with heatmap output for precise analysis.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon cyan">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="feature-name">Boulder Loop</div>
+      <div class="feature-desc">Iterative refinement that keeps going until your design match threshold is met.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon purple">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <div class="feature-name">MCP Server</div>
+      <div class="feature-desc">Drop-in integration with Claude Code, Cursor, or any MCP-compatible AI tool.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon pink">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h8"/></svg>
+      </div>
+      <div class="feature-name">Project Detection</div>
+      <div class="feature-desc">Auto-detects React, Vue, Svelte, Tailwind, TypeScript, and more.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon amber">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94L6.16 20.84a2.12 2.12 0 01-3-3l7.37-7.37a6 6 0 017.94-7.94l-3.77 3.77z"/></svg>
+      </div>
+      <div class="feature-name">Smart Patching</div>
+      <div class="feature-desc">Full regeneration for low scores, surgical fixes for scores above 70%.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon green">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <div class="feature-name">Interactive Agent</div>
+      <div class="feature-desc">Terminal UI powered by Ink with real-time iteration progress and conversation.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ MCP TOOLS ═════════════════ -->
+<section class="section tools-section" id="tools">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>MCP Tools</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">5 tools, one integration</h2>
+  <p class="section-desc">
+    Add imugi as an MCP server and your AI gets superpowers.
+  </p>
+
+  <div class="tools-table reveal">
+    <div class="tools-row header">
+      <div class="tools-cell header-text" style="width:200px;">Tool</div>
+      <div class="tools-cell header-text">Description</div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-cell tool-name">imugi_capture</div>
+      <div class="tools-cell desc">Screenshot any URL via headless Chromium with configurable viewport</div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-cell tool-name">imugi_compare</div>
+      <div class="tools-cell desc">Compare design vs screenshot — returns SSIM score, pixel diff, and heatmap</div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-cell tool-name">imugi_analyze</div>
+      <div class="tools-cell desc">Classify diff regions and generate actionable CSS fix suggestions</div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-cell tool-name">imugi_detect</div>
+      <div class="tools-cell desc">Auto-detect project framework, CSS method, and language</div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-cell tool-name">imugi_serve</div>
+      <div class="tools-cell desc">Start a dev server for the target project with HMR support</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ FRAMEWORKS ═════════════════ -->
+<section class="section">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>Compatibility</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">Works with your stack</h2>
+  <p class="section-desc">
+    imugi auto-detects and adapts to your project's tech stack.
+  </p>
+
+  <div class="frameworks reveal">
+    <div class="fw-item">
+      <span class="fw-icon">⚛️</span>
+      <span class="fw-name">React</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">💚</span>
+      <span class="fw-name">Vue</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">🔥</span>
+      <span class="fw-name">Svelte</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">▲</span>
+      <span class="fw-name">Next.js</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">🌊</span>
+      <span class="fw-name">Tailwind</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">📘</span>
+      <span class="fw-name">TypeScript</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">🎨</span>
+      <span class="fw-name">CSS Modules</span>
+    </div>
+    <div class="fw-item">
+      <span class="fw-icon">💅</span>
+      <span class="fw-name">Styled</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ INSTALL ═════════════════ -->
+<section class="section install-section" id="install">
+  <div class="section-label">
+    <div class="section-label-line"></div>
+    <span>Get Started</span>
+    <div class="section-label-line"></div>
+  </div>
+  <h2 class="section-title">Two steps. That's it.</h2>
+  <p class="section-desc">
+    Install globally and add to your AI tool's MCP config.
+  </p>
+
+  <div class="install-grid reveal">
+    <div class="install-card">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-title">Install</div>
+      </div>
+      <div class="install-code">
+        <button class="copy-btn" onclick="copyCode(this, 'npm install -g imugi-ai')">copy</button>
+        <span class="kw">$</span> npm install -g imugi-ai
+      </div>
+    </div>
+    <div class="install-card">
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-title">Add MCP config</div>
+      </div>
+      <div class="install-code">
+        <button class="copy-btn" onclick="copyCode(this, `{&quot;mcpServers&quot;:{&quot;imugi&quot;:{&quot;command&quot;:&quot;npx&quot;,&quot;args&quot;:[&quot;-y&quot;,&quot;imugi-ai&quot;,&quot;mcp&quot;]}}}`)">copy</button>
+{<br>
+&nbsp;&nbsp;<span class="str">"mcpServers"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"imugi"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"command"</span>: <span class="str">"npx"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"imugi-ai"</span>, <span class="str">"mcp"</span>]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════ FINAL CTA ═════════════════ -->
+<section class="final-cta">
+  <div class="final-cta-glow"></div>
+
+  <h2>Stop guessing.<br>Start <span style="color: var(--green);">seeing</span>.</h2>
+  <p>Give your AI the ability to verify its own frontend output. The boulder keeps rolling until it's pixel-perfect.</p>
+
+  <div class="final-install">
+    <code><span class="dollar">$</span> npm install -g imugi-ai</code>
+    <button onclick="copyCode(this, 'npm install -g imugi-ai')">Copy</button>
+  </div>
+
+  <span class="final-note">MIT License · Works with Claude Code & Cursor</span>
+</section>
+
+<!-- ═════════════════ FOOTER ═════════════════ -->
+<footer>
+  <div class="footer-left">
+    <span class="footer-brand">🐉 imugi</span>
+    <span class="footer-copy">© 2025 MIT License</span>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/M00N7682/imugi" class="footer-link">GitHub</a>
+    <a href="https://www.npmjs.com/package/imugi-ai" class="footer-link">npm</a>
+    <a href="https://github.com/M00N7682/imugi#readme" class="footer-link">Docs</a>
+    <a href="https://github.com/M00N7682/imugi/issues" class="footer-link">Issues</a>
+  </div>
+</footer>
+
+<script>
+// Showcase tabs
+function switchShowcase(id, el) {
+  document.querySelectorAll('.showcase-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.showcase-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('showcase-' + id).classList.add('active');
+}
+
+// Copy to clipboard
+function copyCode(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'copied!';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  });
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
+

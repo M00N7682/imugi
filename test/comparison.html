@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imugi - Design vs Generated Comparison</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #09090B;
+    color: #FAFAFA;
+    min-height: 100vh;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px 40px;
+    background: #09090B;
+    border-bottom: 1px solid #27272A;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .top-bar h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #22D3EE, #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .top-bar .divider {
+    width: 1px;
+    height: 24px;
+    background: #3F3F46;
+  }
+
+  .top-bar .subtitle {
+    font-size: 14px;
+    color: #71717A;
+    font-weight: 500;
+  }
+
+  .tab-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 40px;
+    background: #0A0A0A;
+    border-bottom: 1px solid #27272A;
+    position: sticky;
+    top: 65px;
+    z-index: 99;
+  }
+
+  .tab-btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    border: 1px solid #27272A;
+    background: transparent;
+    color: #A1A1AA;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover {
+    border-color: #3F3F46;
+    color: #FAFAFA;
+  }
+
+  .tab-btn.active {
+    background: #18181B;
+    border-color: #8B5CF6;
+    color: #FAFAFA;
+  }
+
+  .comparison-section {
+    display: none;
+    padding: 32px 40px;
+    gap: 32px;
+    flex-direction: column;
+  }
+
+  .comparison-section.active {
+    display: flex;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 0;
+  }
+
+  .section-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .comparison-container {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+  }
+
+  .comparison-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #27272A;
+    background: #18181B;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: #18181B;
+    border-bottom: 1px solid #27272A;
+  }
+
+  .panel-header .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .panel-header .dot.design { background: #8B5CF6; }
+  .panel-header .dot.code { background: #22D3EE; }
+
+  .panel-header span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .panel-header .design-label { color: #8B5CF6; }
+  .panel-header .code-label { color: #22D3EE; }
+
+  .panel-content {
+    position: relative;
+    background: #0A0A0A;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .panel-content img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .panel-content iframe {
+    width: 1440px;
+    height: 900px;
+    border: none;
+    transform-origin: top left;
+  }
+
+  .iframe-wrapper {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Overlay controls */
+  .overlay-section {
+    display: none;
+    padding: 32px 40px;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .overlay-section.active {
+    display: flex;
+  }
+
+  .overlay-container {
+    position: relative;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #27272A;
+  }
+
+  .overlay-container img {
+    width: 100%;
+    display: block;
+  }
+
+  .overlay-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .slider-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .slider-controls label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #A1A1AA;
+  }
+
+  .slider-controls input[type="range"] {
+    width: 300px;
+    accent-color: #8B5CF6;
+  }
+
+  .slider-controls .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #8B5CF6;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  /* Center arrow */
+  .arrow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  .arrow-col .arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: #3F3F46;
+    line-height: 1;
+  }
+
+  .arrow-col .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #52525B;
+    letter-spacing: 2px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  .view-mode-bar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: #0A0A0A;
+    border-bottom: 1px solid #27272A;
+    position: sticky;
+    top: 117px;
+    z-index: 98;
+  }
+
+  .view-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid #27272A;
+    background: transparent;
+    color: #71717A;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .view-btn:hover { color: #A1A1AA; border-color: #3F3F46; }
+  .view-btn.active { background: #27272A; color: #FAFAFA; border-color: #3F3F46; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>IMUGI</h1>
+  <div class="divider"></div>
+  <span class="subtitle">Design → Code Comparison</span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">🖥️ Dark Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('wellness')">🌿 Wellness Landing</button>
+</div>
+
+<div class="view-mode-bar">
+  <button class="view-btn active" onclick="switchView('side-by-side')">Side by Side</button>
+  <button class="view-btn" onclick="switchView('overlay')">Overlay</button>
+</div>
+
+<!-- Dashboard Comparison -->
+<div id="dashboard-sidebyside" class="comparison-section active">
+  <div class="comparison-container">
+    <div class="comparison-panel">
+      <div class="panel-header">
+        <div class="dot design"></div>
+        <span class="design-label">DESIGN (Pencil)</span>
+      </div>
+      <div class="panel-content">
+        <img src="dark-dashboard.png" alt="Dark Dashboard Design">
+      </div>
+    </div>
+    <div class="arrow-col">
+      <span class="arrow">→</span>
+      <span class="label">IMUGI</span>
+      <span class="arrow">→</span>
+    </div>
+    <div class="comparison-panel">
+      <div class="panel-header">
+        <div class="dot code"></div>
+        <span class="code-label">GENERATED (HTML/CSS)</span>
+      </div>
+      <div class="panel-content">
+        <div class="iframe-wrapper" id="dashboard-iframe-wrapper">
+          <iframe src="dark-dashboard.html" id="dashboard-iframe"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard-overlay" class="overlay-section">
+  <div class="slider-controls">
+    <label>Design</label>
+    <input type="range" min="0" max="100" value="50" oninput="updateOverlay('dashboard', this.value)">
+    <label>Generated</label>
+    <span class="value" id="dashboard-overlay-value">50%</span>
+  </div>
+  <div class="overlay-container" style="height: 900px;">
+    <img src="dark-dashboard.png" alt="Dark Dashboard Design" style="width: 100%; height: 100%; object-fit: contain;">
+    <iframe src="dark-dashboard.html" id="dashboard-overlay-iframe" style="opacity: 0.5;"></iframe>
+  </div>
+</div>
+
+<!-- Wellness Comparison -->
+<div id="wellness-sidebyside" class="comparison-section">
+  <div class="comparison-container">
+    <div class="comparison-panel">
+      <div class="panel-header">
+        <div class="dot design"></div>
+        <span class="design-label">DESIGN (Pencil)</span>
+      </div>
+      <div class="panel-content">
+        <img src="wellness-landing.png" alt="Wellness Landing Design">
+      </div>
+    </div>
+    <div class="arrow-col">
+      <span class="arrow">→</span>
+      <span class="label">IMUGI</span>
+      <span class="arrow">→</span>
+    </div>
+    <div class="comparison-panel">
+      <div class="panel-header">
+        <div class="dot code"></div>
+        <span class="code-label">GENERATED (HTML/CSS)</span>
+      </div>
+      <div class="panel-content">
+        <div class="iframe-wrapper" id="wellness-iframe-wrapper">
+          <iframe src="wellness-landing.html" id="wellness-iframe"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="wellness-overlay" class="overlay-section">
+  <div class="slider-controls">
+    <label>Design</label>
+    <input type="range" min="0" max="100" value="50" oninput="updateOverlay('wellness', this.value)">
+    <label>Generated</label>
+    <span class="value" id="wellness-overlay-value">50%</span>
+  </div>
+  <div class="overlay-container" style="height: 1200px;">
+    <img src="wellness-landing.png" alt="Wellness Landing Design" style="width: 100%; height: 100%; object-fit: contain;">
+    <iframe src="wellness-landing.html" id="wellness-overlay-iframe" style="opacity: 0.5;"></iframe>
+  </div>
+</div>
+
+<script>
+  let currentTab = 'dashboard';
+  let currentView = 'side-by-side';
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    updateVisibility();
+    resizeIframes();
+  }
+
+  function switchView(view) {
+    currentView = view;
+    document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    updateVisibility();
+    resizeIframes();
+  }
+
+  function updateVisibility() {
+    // Hide all
+    document.querySelectorAll('.comparison-section, .overlay-section').forEach(el => el.classList.remove('active'));
+    // Show appropriate
+    if (currentView === 'side-by-side') {
+      document.getElementById(currentTab + '-sidebyside').classList.add('active');
+    } else {
+      document.getElementById(currentTab + '-overlay').classList.add('active');
+    }
+  }
+
+  function updateOverlay(tab, value) {
+    document.getElementById(tab + '-overlay-value').textContent = value + '%';
+    document.getElementById(tab + '-overlay-iframe').style.opacity = value / 100;
+  }
+
+  function resizeIframes() {
+    // Scale iframes to fit the panel width
+    const wrappers = document.querySelectorAll('.iframe-wrapper');
+    wrappers.forEach(wrapper => {
+      const iframe = wrapper.querySelector('iframe');
+      if (!iframe) return;
+
+      const panelWidth = wrapper.clientWidth;
+      const iframeWidth = 1440;
+      const scale = panelWidth / iframeWidth;
+
+      iframe.style.transform = `scale(${scale})`;
+      iframe.style.transformOrigin = 'top left';
+
+      // For dashboard (fixed height)
+      if (iframe.id.includes('dashboard')) {
+        wrapper.style.height = (900 * scale) + 'px';
+      } else {
+        // For wellness landing, set a taller height
+        iframe.style.height = '2000px';
+        wrapper.style.height = (2000 * scale) + 'px';
+      }
+    });
+  }
+
+  // Initial resize
+  window.addEventListener('load', resizeIframes);
+  window.addEventListener('resize', resizeIframes);
+
+  // Also resize after a short delay for iframe loading
+  setTimeout(resizeIframes, 500);
+  setTimeout(resizeIframes, 1500);
+</script>
+
+</body>
+</html>
+

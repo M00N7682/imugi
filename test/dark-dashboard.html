@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440, initial-scale=1">
+<title>Dark Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #0A0F1C; color: #fff; display: flex; height: 900px; width: 1440px; overflow: hidden; }
+
+.sidebar { width: 260px; background: #0F172A; padding: 32px 20px; display: flex; flex-direction: column; gap: 32px; flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 32px; height: 32px; border-radius: 8px; background: #22D3EE; }
+.logo-text { font-family: 'JetBrains Mono'; font-size: 18px; font-weight: 700; letter-spacing: 3px; }
+.nav-label { font-size: 11px; font-weight: 600; color: #64748B; letter-spacing: 2px; margin-bottom: 4px; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; font-size: 14px; color: #94A3B8; font-weight: 500; }
+.nav-item.active { background: rgba(34,211,238,0.08); color: #22D3EE; font-weight: 600; }
+.nav-item svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.main { flex: 1; padding: 32px 40px; display: flex; flex-direction: column; gap: 28px; overflow: hidden; }
+.header { display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 28px; font-weight: 700; }
+.header p { font-size: 14px; color: #64748B; margin-top: 4px; }
+.header-right { display: flex; gap: 12px; align-items: center; }
+.search-box { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; background: #1E293B; }
+.search-box svg { width: 16px; height: 16px; stroke: #475569; fill: none; stroke-width: 2; }
+.search-box span { font-family: 'JetBrains Mono'; font-size: 13px; color: #475569; }
+.icon-btn { width: 40px; height: 40px; border-radius: 8px; background: #1E293B; display: flex; align-items: center; justify-content: center; }
+.icon-btn svg { width: 18px; height: 18px; stroke: #94A3B8; fill: none; stroke-width: 2; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(180deg, #22D3EE, #8B5CF6); }
+
+.metrics { display: flex; gap: 16px; }
+.metric-card { flex: 1; background: #1E293B; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.metric-top { display: flex; justify-content: space-between; align-items: center; }
+.metric-label { font-size: 11px; font-weight: 600; color: #64748B; letter-spacing: 1.5px; }
+.metric-top svg { width: 18px; height: 18px; stroke: #22D3EE; fill: none; stroke-width: 2; }
+.metric-value { font-family: 'JetBrains Mono'; font-size: 28px; font-weight: 700; }
+.metric-change { font-family: 'JetBrains Mono'; font-size: 12px; font-weight: 500; color: #22D3EE; }
+
+.charts-row { display: flex; gap: 16px; flex: 1; min-height: 0; }
+.chart-panel { flex: 1; background: #1E293B; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; }
+.chart-header h3 { font-size: 16px; font-weight: 600; }
+.chart-badge { padding: 6px 12px; border-radius: 6px; background: rgba(34,211,238,0.12); font-family: 'JetBrains Mono'; font-size: 11px; font-weight: 600; color: #22D3EE; }
+.chart-bars { display: flex; gap: 12px; align-items: flex-end; flex: 1; padding: 0 8px; justify-content: space-around; }
+.bar-wrap { display: flex; flex-direction: column; gap: 8px; align-items: center; flex: 1; }
+.bar { width: 100%; border-radius: 4px; background: linear-gradient(to bottom, #22D3EE, rgba(34,211,238,0.25)); }
+.bar.highlight { background: linear-gradient(to bottom, #22D3EE, rgba(139,92,246,0.25)); }
+.bar-label { font-family: 'JetBrains Mono'; font-size: 11px; font-weight: 600; color: #64748B; }
+.bar-label.active { color: #fff; }
+
+.activity-panel { width: 320px; background: #1E293B; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+.activity-header { display: flex; justify-content: space-between; align-items: center; }
+.activity-header h3 { font-size: 16px; font-weight: 600; }
+.badge-count { padding: 4px 10px; border-radius: 100px; background: #22D3EE; font-family: 'JetBrains Mono'; font-size: 11px; font-weight: 700; color: #0A0F1C; }
+.activity-list { display: flex; flex-direction: column; gap: 4px; }
+.activity-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; background: #0F172A; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot.cyan { background: #22D3EE; }
+.dot.purple { background: #8B5CF6; }
+.dot.pink { background: #F472B6; }
+.dot.teal { background: #14B8A6; }
+.activity-text h4 { font-size: 13px; font-weight: 500; }
+.activity-text span { font-family: 'JetBrains Mono'; font-size: 11px; color: #64748B; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="logo"><div class="logo-icon"></div><span class="logo-text">IMUGI</span></div>
+  <nav class="nav">
+    <div class="nav-label">NAVIGATION</div>
+    <div class="nav-item active"><svg><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+    <div class="nav-item"><svg><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Analytics</div>
+    <div class="nav-item"><svg><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users</div>
+    <div class="nav-item"><svg><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+  </nav>
+</aside>
+<main class="main">
+  <div class="header">
+    <div><h1>Dashboard</h1><p>Welcome back. Here's your overview.</p></div>
+    <div class="header-right">
+      <div class="search-box"><svg><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Search...</span></div>
+      <div class="icon-btn"><svg><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="avatar"></div>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric-card"><div class="metric-top"><span class="metric-label">TOTAL REVENUE</span><svg><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="metric-value">$48,290</div><div class="metric-change">+12.5% from last month</div></div>
+    <div class="metric-card"><div class="metric-top"><span class="metric-label">ACTIVE USERS</span><svg><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="metric-value">2,847</div><div class="metric-change">+340 this week</div></div>
+    <div class="metric-card"><div class="metric-top"><span class="metric-label">CONVERSION</span><svg><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="metric-value">3.24%</div><div class="metric-change">+0.8% improvement</div></div>
+    <div class="metric-card"><div class="metric-top"><span class="metric-label">AVG SESSION</span><svg><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="metric-value">4m 32s</div><div class="metric-change">+18s avg increase</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-panel">
+      <div class="chart-header"><h3>Revenue Overview</h3><span class="chart-badge">Last 7 days</span></div>
+      <div class="chart-bars">
+        <div class="bar-wrap"><div class="bar" style="height:180px"></div><span class="bar-label">Mon</span></div>
+        <div class="bar-wrap"><div class="bar" style="height:240px"></div><span class="bar-label">Tue</span></div>
+        <div class="bar-wrap"><div class="bar" style="height:160px"></div><span class="bar-label">Wed</span></div>
+        <div class="bar-wrap"><div class="bar highlight" style="height:300px"></div><span class="bar-label active">Thu</span></div>
+        <div class="bar-wrap"><div class="bar" style="height:220px"></div><span class="bar-label">Fri</span></div>
+        <div class="bar-wrap"><div class="bar" style="height:280px"></div><span class="bar-label">Sat</span></div>
+        <div class="bar-wrap"><div class="bar" style="height:200px"></div><span class="bar-label">Sun</span></div>
+      </div>
+    </div>
+    <div class="activity-panel">
+      <div class="activity-header"><h3>Recent Activity</h3><span class="badge-count">12</span></div>
+      <div class="activity-list">
+        <div class="activity-item"><div class="dot cyan"></div><div class="activity-text"><h4>New user signup</h4><span>2 minutes ago</span></div></div>
+        <div class="activity-item"><div class="dot purple"></div><div class="activity-text"><h4>Payment received $240</h4><span>15 minutes ago</span></div></div>
+        <div class="activity-item"><div class="dot cyan"></div><div class="activity-text"><h4>Server deployed v2.4</h4><span>1 hour ago</span></div></div>
+        <div class="activity-item"><div class="dot pink"></div><div class="activity-text"><h4>Alert: CPU spike 92%</h4><span>2 hours ago</span></div></div>
+        <div class="activity-item"><div class="dot cyan"></div><div class="activity-text"><h4>API key rotated</h4><span>3 hours ago</span></div></div>
+        <div class="activity-item"><div class="dot purple"></div><div class="activity-text"><h4>Subscription upgraded</h4><span>5 hours ago</span></div></div>
+        <div class="activity-item"><div class="dot teal"></div><div class="activity-text"><h4>Database backup done</h4><span>Yesterday</span></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
