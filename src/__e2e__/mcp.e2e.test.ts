@@ -115,9 +115,10 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('imugi_capture');
       expect(toolNames).toContain('imugi_compare');
       expect(toolNames).toContain('imugi_analyze');
+      expect(toolNames).toContain('imugi_figma_export');
       expect(toolNames).toContain('imugi_detect');
       expect(toolNames).toContain('imugi_serve');
-      expect(result.tools).toHaveLength(5);
+      expect(result.tools).toHaveLength(6);
 
       for (const tool of result.tools) {
         expect(tool.description.length).toBeGreaterThan(10);

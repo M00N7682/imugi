@@ -2,6 +2,17 @@
 
 All notable changes to imugi will be documented in this file.
 
+## [1.1.0] - 2026-02-27
+
+### Added
+- Figma integration: export Figma frames directly via URL using the Figma REST API
+- New core module `src/core/figma.ts` with URL parsing, API client, and token resolution
+- New MCP tool `imugi_figma_export` for exporting Figma frames as PNG/JPG/SVG/PDF
+- New CLI command `imugi figma <url>` with `--compare` flag for export + compare workflow
+- Added `figmaUrl` parameter to `imugi_compare` MCP tool for direct Figma-to-screenshot comparison
+- Config support for `figma.token` and `figma.defaultScale` in `imugi.config.json`
+- Environment variable support: `FIGMA_TOKEN` / `FIGMA_PERSONAL_ACCESS_TOKEN`
+
 ## [1.0.2] - 2025-02-27
 
 ### Added

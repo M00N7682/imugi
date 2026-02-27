@@ -115,6 +115,7 @@ See the full example at [`examples/hero-section/`](examples/hero-section/).
 - **Visual Comparison Engine** — SSIM + pixel diff + Claude Vision scoring with heatmap output
 - **Boulder Loop** — Iterative code improvement that keeps going until the design match threshold is met
 - **MCP Server** — Drop-in integration with Claude Code, Cursor, or any MCP-compatible AI tool
+- **Figma Integration** — Export Figma frames directly via URL, no manual export needed
 - **Project Detection** — Auto-detects framework (React/Vue/Svelte), CSS method (Tailwind/modules/styled-components), language (TypeScript/JavaScript)
 - **Interactive Agent** — Terminal UI with real-time iteration progress (powered by Ink)
 - **Smart Patching** — Full regeneration for scores below 0.7, surgical patches for scores above 0.7
@@ -156,6 +157,21 @@ imugi generate ./design.png --output src/app/page.tsx
 imugi compare ./design.png --screenshot ./current.png
 ```
 
+### Figma Export
+
+```bash
+# Export a Figma frame as PNG
+imugi figma "https://www.figma.com/design/FILE_KEY/name?node-id=42-1234"
+
+# Export at 3x scale with custom output path
+imugi figma "https://www.figma.com/design/FILE_KEY/name?node-id=42-1234" -s 3 -o design.png
+
+# Export and immediately compare against dev server
+imugi figma "https://www.figma.com/design/FILE_KEY/name?node-id=42-1234" --compare
+```
+
+Requires a Figma personal access token via `FIGMA_TOKEN` environment variable or `figma.token` in config.
+
 ---
 
 ## MCP Tools
@@ -165,6 +181,7 @@ imugi compare ./design.png --screenshot ./current.png
 | `imugi_capture` | Screenshot a URL via headless Chromium |
 | `imugi_compare` | Compare design vs screenshot — returns SSIM score, pixel diff, and heatmap |
 | `imugi_analyze` | Analyze visual differences with actionable fix suggestions |
+| `imugi_figma_export` | Export a Figma frame as PNG via URL or file key + node ID |
 | `imugi_detect` | Detect project tech stack (framework, CSS, language) |
 | `imugi_serve` | Start a dev server for the target project |
 
@@ -215,6 +232,7 @@ Create `imugi.config.json` in your project root:
 | `IMUGI_THRESHOLD` | Similarity threshold (0.8–0.99) |
 | `IMUGI_MAX_ITERATIONS` | Max iterations (1–50) |
 | `IMUGI_PORT` | Dev server port |
+| `FIGMA_TOKEN` | Figma personal access token (for `imugi figma` and `imugi_figma_export`) |
 
 ---
 
@@ -234,7 +252,8 @@ src/
 │   ├── analyzer.ts     # Diff classification + strategy
 │   ├── renderer.ts     # Playwright screenshot engine
 │   ├── patcher.ts      # Code generation + patching
-│   └── context.ts      # Project tech stack detection
+│   ├── context.ts      # Project tech stack detection
+│   └── figma.ts        # Figma URL parsing + API export
 ├── llm/
 │   ├── client.ts       # Anthropic SDK wrapper
 │   └── prompts.ts      # Prompt engineering

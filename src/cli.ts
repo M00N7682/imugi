@@ -12,6 +12,7 @@ import { createRenderer, resizeToMatch } from './core/renderer.js';
 import { compareImages } from './core/comparator.js';
 import { analyzeDifferences, generateReportText } from './core/analyzer.js';
 import { runBoulderLoop } from './agent/loop.js';
+import { parseFigmaUrl, exportFigmaImage, resolveToken } from './core/figma.js';
 import sharp from 'sharp';
 
 const execFileAsync = promisify(execFileCb);
@@ -189,6 +190,67 @@ program
     process.stdout.write(`Pixel diff: ${(comparison.pixelDiff.diffPercentage * 100).toFixed(2)}%\n`);
     process.stdout.write(`Composite score: ${comparison.compositeScore.toFixed(4)}\n`);
     process.stdout.write(`Diff regions: ${comparison.diffRegions.length}\n`);
+  });
+
+program
+  .command('figma <url>')
+  .description('Export a Figma frame as PNG and optionally compare against a running dev server')
+  .option('-o, --output <path>', 'Save exported image to path', 'figma-export.png')
+  .option('-s, --scale <number>', 'Export scale 1-4', parseFloat)
+  .option('--compare', 'After export, compare against running dev server')
+  .action(async (url: string, cmdOpts: { output: string; scale?: number; compare?: boolean }) => {
+    const opts = program.opts();
+    const config = await loadConfig({
+      configPath: opts.config as string | undefined,
+      cliOverrides: buildCliOverrides(opts),
+    });
+
+    const parsed = parseFigmaUrl(url);
+    if (!parsed.nodeId) {
+      process.stderr.write('Error: Figma URL must include a node-id parameter (e.g. ?node-id=42-1234)\n');
+      process.exit(1);
+    }
+
+    const token = resolveToken(config.figma.token);
+    const scale = cmdOpts.scale ?? config.figma.defaultScale;
+
+    process.stdout.write(`Exporting Figma frame (${parsed.fileKey}, node ${parsed.nodeId}, ${scale}x)...\n`);
+    const buffer = await exportFigmaImage({
+      fileKey: parsed.fileKey,
+      nodeId: parsed.nodeId,
+      token,
+      scale,
+    });
+
+    const outputPath = resolve(cmdOpts.output);
+    await writeFile(outputPath, buffer);
+    process.stdout.write(`Saved to ${outputPath} (${buffer.length} bytes)\n`);
+
+    if (cmdOpts.compare) {
+      process.stdout.write('\nComparing against dev server...\n');
+      const designBuffer = buffer;
+      const designMeta = await sharp(designBuffer).metadata();
+      const designWidth = designMeta.width ?? config.rendering.viewport.width;
+      const designHeight = designMeta.height ?? config.rendering.viewport.height;
+
+      const context = await detectProjectContext(process.cwd());
+      const renderer = createRenderer(config);
+      await renderer.start(context, process.cwd());
+      registerCleanup(() => renderer.shutdown());
+      const screenshotBuffer = await renderer.capture('/');
+      await renderer.shutdown();
+
+      const resized = await resizeToMatch(screenshotBuffer, designWidth, designHeight);
+      const comparison = await compareImages(designBuffer, resized);
+      const report = analyzeDifferences(comparison);
+      const reportText = generateReportText(report);
+
+      process.stdout.write(reportText + '\n');
+      process.stdout.write(`\nSSIM: ${comparison.ssim.mssim.toFixed(4)}\n`);
+      process.stdout.write(`Pixel diff: ${(comparison.pixelDiff.diffPercentage * 100).toFixed(2)}%\n`);
+      process.stdout.write(`Composite score: ${comparison.compositeScore.toFixed(4)}\n`);
+      process.stdout.write(`Diff regions: ${comparison.diffRegions.length}\n`);
+    }
   });
 
 program

@@ -10,6 +10,7 @@ import { compareImages } from '../core/comparator.js';
 import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';
+import { parseFigmaUrl, exportFigmaImage, resolveToken } from '../core/figma.js';
 
 declare const __IMUGI_VERSION__: string;
 
@@ -82,11 +83,24 @@ export async function startMcpServer(): Promise<void> {
       designImagePath: z.string().describe('Path to the design image file'),
       screenshotUrl: z.string().optional().describe('URL to capture screenshot from'),
       screenshotPath: z.string().optional().describe('Path to an existing screenshot file'),
+      figmaUrl: z.string().optional().describe('Figma URL to export as design image (alternative to designImagePath)'),
       viewportWidth: z.number().int().default(1440),
       viewportHeight: z.number().int().default(900),
     },
-    async ({ designImagePath, screenshotUrl, screenshotPath, viewportWidth, viewportHeight }) => {
-      const designBuffer = await readFile(designImagePath);
+    async ({ designImagePath, screenshotUrl, screenshotPath, figmaUrl, viewportWidth, viewportHeight }) => {
+      let designBuffer: Buffer;
+
+      if (figmaUrl) {
+        const parsed = parseFigmaUrl(figmaUrl);
+        if (!parsed.nodeId) {
+          return { content: [{ type: 'text' as const, text: 'Error: Figma URL must include a node-id parameter' }] };
+        }
+        const token = resolveToken();
+        designBuffer = await exportFigmaImage({ fileKey: parsed.fileKey, nodeId: parsed.nodeId, token });
+      } else {
+        designBuffer = await readFile(designImagePath);
+      }
+
       let screenshotBuffer: Buffer;
 
       if (screenshotPath) {
@@ -146,6 +160,62 @@ export async function startMcpServer(): Promise<void> {
 
       return {
         content: [{ type: 'text' as const, text: reportText }],
+      };
+    },
+  );
+
+  server.tool(
+    'imugi_figma_export',
+    'Export a Figma frame as a PNG image. Pass a Figma URL or file key + node ID. Requires FIGMA_TOKEN env var.',
+    {
+      url: z.string().optional().describe('Full Figma URL (e.g. https://www.figma.com/design/FILE_KEY/name?node-id=42-1234)'),
+      fileKey: z.string().optional().describe('Figma file key (alternative to URL)'),
+      nodeId: z.string().optional().describe('Node ID to export (e.g. 42:1234)'),
+      scale: z.number().min(1).max(4).default(2).describe('Export scale (1-4)'),
+      format: z.enum(['png', 'jpg', 'svg', 'pdf']).default('png').describe('Image format'),
+      outputPath: z.string().optional().describe('Save to file path instead of returning inline'),
+    },
+    async ({ url, fileKey, nodeId, scale, format, outputPath }) => {
+      let resolvedFileKey: string;
+      let resolvedNodeId: string;
+
+      if (url) {
+        const parsed = parseFigmaUrl(url);
+        resolvedFileKey = parsed.fileKey;
+        if (!parsed.nodeId) {
+          return { content: [{ type: 'text' as const, text: 'Error: Figma URL must include a node-id parameter (e.g. ?node-id=42-1234)' }] };
+        }
+        resolvedNodeId = parsed.nodeId;
+      } else if (fileKey && nodeId) {
+        resolvedFileKey = fileKey;
+        resolvedNodeId = nodeId;
+      } else {
+        return { content: [{ type: 'text' as const, text: 'Error: Provide either a Figma URL or both fileKey and nodeId' }] };
+      }
+
+      const token = resolveToken();
+      const buffer = await exportFigmaImage({
+        fileKey: resolvedFileKey,
+        nodeId: resolvedNodeId,
+        token,
+        scale,
+        format,
+      });
+
+      if (outputPath) {
+        const { writeFile: writeFileAsync } = await import('fs/promises');
+        await writeFileAsync(outputPath, buffer);
+        return {
+          content: [{ type: 'text' as const, text: `Exported Figma frame to ${outputPath} (${buffer.length} bytes, ${scale}x ${format})` }],
+        };
+      }
+
+      const mimeType = format === 'jpg' ? 'image/jpeg' : format === 'svg' ? 'image/svg+xml' : format === 'pdf' ? 'application/pdf' : 'image/png';
+      return {
+        content: [
+          { type: 'image' as const, data: buffer.toString('base64'), mimeType: mimeType as 'image/png' },
+          { type: 'text' as const, text: `Figma export: ${resolvedFileKey} node ${resolvedNodeId} (${scale}x ${format}, ${buffer.length} bytes)` },
+        ],
       };
     },
   );

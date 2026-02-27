@@ -25,6 +25,7 @@ const mockConfig: ImugiConfig = {
   },
   project: { framework: null, css: null, language: null },
   timeouts: { overall: 1800, pageLoad: 15, devServer: 30 },
+  figma: { token: null, defaultScale: 2 },
 };
 
 const mockComparisonResult: ComparisonResult = {

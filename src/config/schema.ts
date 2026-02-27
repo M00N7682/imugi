@@ -30,6 +30,10 @@ const ImugiConfigSchema = z.object({
     pageLoad: z.number().default(15),
     devServer: z.number().default(30),
   }).default({}),
+  figma: z.object({
+    token: z.string().nullable().default(null),
+    defaultScale: z.number().min(1).max(4).default(2),
+  }).default({}),
 });
 
 type ImugiConfig = z.infer<typeof ImugiConfigSchema>;

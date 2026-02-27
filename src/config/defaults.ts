@@ -27,4 +27,8 @@ export const DEFAULT_CONFIG: ImugiConfig = {
     pageLoad: 15,
     devServer: 30,
   },
+  figma: {
+    token: null,
+    defaultScale: 2,
+  },
 };
