@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>imugi Demo Visual</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #09090b;
+      color: #fafafa;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    .container {
+      width: 1200px;
+      background: #0a0a0a;
+      border: 1px solid #1e1e1e;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 32px 40px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .header-logo {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-tag {
+      font-size: 13px;
+      color: #71717a;
+      border-left: 1px solid #27272a;
+      padding-left: 16px;
+    }
+    .header-badge {
+      margin-left: auto;
+      padding: 5px 14px;
+      border: 1px solid #6366f1;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #818cf8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Flow section */
+    .flow {
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+    }
+
+    .step-box {
+      background: #111113;
+      border: 1px solid #1e1e1e;
+      border-radius: 14px;
+      padding: 20px;
+      height: 240px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step-box.design {
+      border-color: #6366f1;
+      background: linear-gradient(180deg, rgba(99,102,241,0.06) 0%, #111113 100%);
+    }
+
+    .step-box.code {
+      font-family: 'JetBrains Mono', monospace;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 16px;
+    }
+
+    .step-box.result {
+      border-color: #22c55e;
+      background: linear-gradient(180deg, rgba(34,197,94,0.06) 0%, #111113 100%);
+    }
+
+    /* Design mockup */
+    .mockup {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+    .mockup-nav {
+      height: 24px;
+      background: #1a1a1d;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+    }
+    .mockup-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .mockup-dot.r { background: #ef4444; }
+    .mockup-dot.y { background: #eab308; }
+    .mockup-dot.g { background: #22c55e; }
+    .mockup-hero {
+      flex: 1;
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .mockup-title {
+      width: 60%;
+      height: 14px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+    }
+    .mockup-subtitle {
+      width: 40%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+    }
+    .mockup-btn {
+      width: 50px;
+      height: 18px;
+      background: #6366f1;
+      border-radius: 5px;
+      margin-top: 4px;
+    }
+    .mockup-cards {
+      display: flex;
+      gap: 6px;
+      height: 48px;
+    }
+    .mockup-card {
+      flex: 1;
+      background: #1a1a1d;
+      border-radius: 6px;
+    }
+
+    /* Code display */
+    .code-line {
+      font-size: 10px;
+      line-height: 1.7;
+      white-space: nowrap;
+    }
+    .code-line .kw { color: #c084fc; }
+    .code-line .fn { color: #818cf8; }
+    .code-line .str { color: #22c55e; }
+    .code-line .tag { color: #f472b6; }
+    .code-line .attr { color: #60a5fa; }
+    .code-line .cm { color: #52525b; }
+    .code-line .num { color: #f59e0b; }
+    .code-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 12px;
+      background: #6366f1;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Result */
+    .result-mockup {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+    .check-overlay {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      background: #22c55e;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Arrow */
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      width: 60px;
+    }
+    .arrow-line {
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+      position: relative;
+    }
+    .arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border: 5px solid transparent;
+      border-left-color: #818cf8;
+    }
+    .arrow-label {
+      font-size: 10px;
+      color: #52525b;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    /* Step labels */
+    .step-label {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #d4d4d8;
+    }
+    .step-sublabel {
+      font-size: 11px;
+      color: #52525b;
+      margin-top: 4px;
+    }
+
+    /* Score bar */
+    .score-section {
+      padding: 24px 40px 32px;
+      border-top: 1px solid #1e1e1e;
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .score-label {
+      font-size: 13px;
+      color: #71717a;
+      width: 120px;
+      flex-shrink: 0;
+    }
+    .score-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #1e1e1e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #6366f1, #22c55e);
+      width: 96.2%;
+    }
+    .score-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #22c55e;
+      width: 80px;
+      text-align: right;
+    }
+    .score-details {
+      display: flex;
+      gap: 32px;
+      margin-top: 12px;
+      padding-left: 136px;
+    }
+    .score-detail {
+      font-size: 11px;
+      color: #52525b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .score-detail span { color: #a1a1aa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-logo">imugi</div>
+      <div class="header-tag">Design to Code — Visual Verification</div>
+      <div class="header-badge">v1.0.1</div>
+    </div>
+
+    <div class="flow">
+      <!-- Step 1: Design -->
+      <div class="step">
+        <div class="step-box design">
+          <div class="mockup">
+            <div class="mockup-nav">
+              <div class="mockup-dot r"></div>
+              <div class="mockup-dot y"></div>
+              <div class="mockup-dot g"></div>
+            </div>
+            <div class="mockup-hero">
+              <div class="mockup-title"></div>
+              <div class="mockup-subtitle"></div>
+              <div class="mockup-btn"></div>
+            </div>
+            <div class="mockup-cards">
+              <div class="mockup-card"></div>
+              <div class="mockup-card"></div>
+              <div class="mockup-card"></div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label">Design Image</div>
+        <div class="step-sublabel">Your reference (.png, .jpg, .figma)</div>
+      </div>
+
+      <!-- Arrow 1 -->
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">capture</div>
+      </div>
+
+      <!-- Step 2: Code -->
+      <div class="step">
+        <div class="step-box code">
+          <div class="code-line"><span class="cm">// Boulder Loop iteration 3</span></div>
+          <div class="code-line"><span class="kw">export</span> <span class="kw">default</span> <span class="kw">function</span> <span class="fn">Hero</span>() {</div>
+          <div class="code-line">&nbsp;&nbsp;<span class="kw">return</span> (</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="tag">section</span> <span class="attr">className</span>=<span class="str">"hero"</span>&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="tag">h1</span>&gt;Build faster&lt;/<span class="tag">h1</span>&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="tag">p</span>&gt;Ship pixel-perfect&lt;/<span class="tag">p</span>&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="tag">Button</span> <span class="attr">variant</span>=<span class="str">"primary"</span>/&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="tag">Cards</span> <span class="attr">count</span>={<span class="num">3</span>}/&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span class="tag">section</span>&gt;</div>
+          <div class="code-line">&nbsp;&nbsp;);</div>
+          <div class="code-line">}<span class="code-cursor"></span></div>
+        </div>
+        <div class="step-label">AI Code Generation</div>
+        <div class="step-sublabel">Auto-patches until score >= 0.95</div>
+      </div>
+
+      <!-- Arrow 2 -->
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">compare</div>
+      </div>
+
+      <!-- Step 3: Result -->
+      <div class="step">
+        <div class="step-box result">
+          <div class="check-overlay">&#10003;</div>
+          <div class="result-mockup">
+            <div class="mockup-nav">
+              <div class="mockup-dot r"></div>
+              <div class="mockup-dot y"></div>
+              <div class="mockup-dot g"></div>
+            </div>
+            <div class="mockup-hero">
+              <div class="mockup-title"></div>
+              <div class="mockup-subtitle"></div>
+              <div class="mockup-btn"></div>
+            </div>
+            <div class="mockup-cards">
+              <div class="mockup-card"></div>
+              <div class="mockup-card"></div>
+              <div class="mockup-card"></div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label">Pixel-Perfect Match</div>
+        <div class="step-sublabel">SSIM + pixel diff verified</div>
+      </div>
+    </div>
+
+    <!-- Score bar -->
+    <div class="score-section">
+      <div class="score-row">
+        <div class="score-label">Composite Score</div>
+        <div class="score-bar-bg">
+          <div class="score-bar-fill"></div>
+        </div>
+        <div class="score-value">0.962</div>
+      </div>
+      <div class="score-details">
+        <div class="score-detail">SSIM: <span>0.971</span></div>
+        <div class="score-detail">Pixel: <span>0.953</span></div>
+        <div class="score-detail">Iterations: <span>3</span></div>
+        <div class="score-detail">Strategy: <span>surgical-patch</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

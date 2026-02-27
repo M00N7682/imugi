@@ -17,7 +17,7 @@
 
 <br />
 
-<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/logo.png" alt="imugi logo" width="400" />
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/demo-visual.png" alt="imugi — Design to Code visual verification flow" width="820" />
 
 </div>
 
@@ -51,13 +51,13 @@ imugi uses **SSIM** (Structural Similarity) + **pixelmatch** + **Claude Vision**
 
 ## Quick Start
 
-### Step 1: Install
+### Step 1: Install & Setup
 
 ```bash
 npm install -g imugi-ai
 
-# Playwright requires a browser binary — install Chromium:
-npx playwright install chromium
+# One-click setup: installs Playwright browser, detects project, creates config
+imugi init
 ```
 
 ### Step 2: Add to your AI tool
@@ -98,6 +98,15 @@ A terminal-inspired hero section — designed in Pencil, implemented by imugi.
 > Dark mode terminal aesthetic with JetBrains Mono, `#10B981` green accent, nav bar, hero CTA, 4-step flow diagram, MCP tools grid, and footer — pixel-perfect match from design to code.
 
 See the full example at [`examples/hero-section/`](examples/hero-section/).
+
+### More Examples
+
+| Example | Description |
+|---------|-------------|
+| [`hero-section/`](examples/hero-section/) | Terminal-inspired landing hero with flow diagram |
+| [`login-page/`](examples/login-page/) | Split-panel login with social auth buttons |
+| [`pricing-page/`](examples/pricing-page/) | 3-tier pricing cards (Starter / Pro / Enterprise) |
+| [`dashboard/`](examples/dashboard/) | Analytics dashboard with sidebar, stats, and chart |
 
 ---
 

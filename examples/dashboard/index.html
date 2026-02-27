@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — imugi Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      min-height: 100vh;
+      display: flex;
+    }
+    .sidebar {
+      width: 240px;
+      background: #0a0a0a;
+      border-right: 1px solid #1e1e1e;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 32px;
+      padding: 0 8px;
+    }
+    .nav-section {
+      margin-bottom: 24px;
+    }
+    .nav-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #52525b;
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { background: #18181b; color: #fafafa; }
+    .nav-item.active { background: #1e1b4b; color: #818cf8; }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 8px;
+      border-top: 1px solid #1e1e1e;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .user-name { font-size: 13px; font-weight: 500; }
+    .user-email { font-size: 11px; color: #52525b; }
+
+    .main {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .top-bar h1 { font-size: 24px; font-weight: 700; }
+    .top-bar-actions { display: flex; gap: 12px; }
+    .btn-outline {
+      padding: 9px 16px;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      background: transparent;
+      color: #a1a1aa;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-primary {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #6366f1;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #0a0a0a;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #71717a;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .stat-change {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-change.up { color: #22c55e; }
+    .stat-change.down { color: #ef4444; }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: #0a0a0a;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-link {
+      font-size: 13px;
+      color: #6366f1;
+      text-decoration: none;
+    }
+
+    .chart-placeholder {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(180deg, rgba(99,102,241,0.08) 0%, transparent 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 8px;
+      gap: 6px;
+    }
+    .chart-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+      border-radius: 4px 4px 0 0;
+      min-height: 16px;
+    }
+
+    .activity-list { list-style: none; }
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .activity-dot.green { background: #22c55e; }
+    .activity-dot.blue { background: #6366f1; }
+    .activity-dot.yellow { background: #eab308; }
+    .activity-dot.red { background: #ef4444; }
+    .activity-text { font-size: 13px; color: #a1a1aa; flex: 1; }
+    .activity-time { font-size: 12px; color: #52525b; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">imugi</div>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active"><span class="nav-icon">◫</span> Dashboard</div>
+      <div class="nav-item"><span class="nav-icon">⊞</span> Projects</div>
+      <div class="nav-item"><span class="nav-icon">◉</span> Comparisons</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Manage</div>
+      <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+      <div class="nav-item"><span class="nav-icon">⊕</span> Integrations</div>
+      <div class="nav-item"><span class="nav-icon">?</span> Help</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar">JD</div>
+        <div>
+          <div class="user-name">Jane Doe</div>
+          <div class="user-email">jane@example.com</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top-bar">
+      <h1>Dashboard</h1>
+      <div class="top-bar-actions">
+        <button class="btn-outline">Export</button>
+        <button class="btn-primary">New Comparison</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Comparisons</div>
+        <div class="stat-value">1,284</div>
+        <div class="stat-change up">↑ 12.5% from last month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg. Score</div>
+        <div class="stat-value">0.943</div>
+        <div class="stat-change up">↑ 3.2% from last month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Perfect Matches</div>
+        <div class="stat-value">847</div>
+        <div class="stat-change up">↑ 8.1% from last month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Projects</div>
+        <div class="stat-value">23</div>
+        <div class="stat-change down">↓ 2 from last month</div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Comparison Scores</div>
+          <a href="#" class="panel-link">View all</a>
+        </div>
+        <div class="chart-placeholder">
+          <div class="chart-bar" style="height: 45%"></div>
+          <div class="chart-bar" style="height: 62%"></div>
+          <div class="chart-bar" style="height: 78%"></div>
+          <div class="chart-bar" style="height: 55%"></div>
+          <div class="chart-bar" style="height: 90%"></div>
+          <div class="chart-bar" style="height: 72%"></div>
+          <div class="chart-bar" style="height: 85%"></div>
+          <div class="chart-bar" style="height: 68%"></div>
+          <div class="chart-bar" style="height: 95%"></div>
+          <div class="chart-bar" style="height: 80%"></div>
+          <div class="chart-bar" style="height: 88%"></div>
+          <div class="chart-bar" style="height: 92%"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Recent Activity</div>
+          <a href="#" class="panel-link">View all</a>
+        </div>
+        <ul class="activity-list">
+          <li class="activity-item">
+            <span class="activity-dot green"></span>
+            <span class="activity-text">Login page reached 0.97 score</span>
+            <span class="activity-time">2m ago</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot blue"></span>
+            <span class="activity-text">New comparison started for pricing</span>
+            <span class="activity-time">15m ago</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot yellow"></span>
+            <span class="activity-text">Dashboard iteration 4/10 — score 0.89</span>
+            <span class="activity-time">1h ago</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot green"></span>
+            <span class="activity-text">Hero section completed (0.96)</span>
+            <span class="activity-time">3h ago</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot red"></span>
+            <span class="activity-text">Nav component failed build check</span>
+            <span class="activity-time">5h ago</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

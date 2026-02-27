@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — imugi Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: #0a0a0a;
+      color: #fafafa;
+    }
+    .left-panel {
+      flex: 1;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+      top: 20%;
+      left: 10%;
+    }
+    .brand-logo {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-tagline {
+      font-size: 18px;
+      color: #94a3b8;
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.6;
+    }
+    .right-panel {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+    }
+    .login-card h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .login-card p {
+      color: #71717a;
+      margin-bottom: 32px;
+      font-size: 15px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #a1a1aa;
+      margin-bottom: 8px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      background: #18181b;
+      color: #fafafa;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      border-color: #6366f1;
+    }
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .form-options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #a1a1aa;
+      cursor: pointer;
+    }
+    .form-options a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      background: #6366f1;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 16px;
+    }
+    .btn-primary:hover { background: #4f46e5; }
+    .divider {
+      text-align: center;
+      color: #52525b;
+      font-size: 13px;
+      margin: 20px 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: #27272a;
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+    .btn-social {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      background: transparent;
+      color: #d4d4d8;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.2s;
+    }
+    .btn-social:hover { background: #18181b; }
+    .signup-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #71717a;
+    }
+    .signup-link a {
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="left-panel">
+    <div class="brand-logo">imugi</div>
+    <p class="brand-tagline">Give AI eyes to see your frontend. Design-to-code with visual verification.</p>
+  </div>
+  <div class="right-panel">
+    <div class="login-card">
+      <h1>Welcome back</h1>
+      <p>Sign in to your account to continue</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" placeholder="name@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" placeholder="Enter your password">
+      </div>
+      <div class="form-options">
+        <label><input type="checkbox"> Remember me</label>
+        <a href="#">Forgot password?</a>
+      </div>
+      <button class="btn-primary">Sign in</button>
+      <div class="divider">or</div>
+      <button class="btn-social">Continue with Google</button>
+      <button class="btn-social">Continue with GitHub</button>
+      <div class="signup-link">Don't have an account? <a href="#">Sign up</a></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — imugi Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border: 1px solid #6366f1;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #818cf8;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+    }
+    .header p {
+      font-size: 18px;
+      color: #71717a;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .card {
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 36px 28px;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s;
+    }
+    .card.popular {
+      border-color: #6366f1;
+      background: linear-gradient(180deg, rgba(99,102,241,0.06) 0%, #0a0a0a 100%);
+      position: relative;
+    }
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #6366f1;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 16px;
+      border-radius: 12px;
+    }
+    .card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .card .desc {
+      font-size: 14px;
+      color: #71717a;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .price {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .price span {
+      font-size: 16px;
+      font-weight: 400;
+      color: #71717a;
+    }
+    .billing {
+      font-size: 13px;
+      color: #52525b;
+      margin-bottom: 28px;
+    }
+    .features {
+      list-style: none;
+      flex: 1;
+      margin-bottom: 28px;
+    }
+    .features li {
+      padding: 8px 0;
+      font-size: 14px;
+      color: #a1a1aa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .features li::before {
+      content: '✓';
+      color: #6366f1;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #27272a;
+      background: transparent;
+      color: #fafafa;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #18181b; }
+    .btn-accent {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+    .btn-accent:hover { background: #4f46e5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">Pricing</div>
+      <h1>Simple, transparent pricing</h1>
+      <p>Choose the plan that fits your team. No hidden fees, cancel anytime.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h3>Starter</h3>
+        <p class="desc">For individuals and side projects</p>
+        <div class="price">$0 <span>/month</span></div>
+        <div class="billing">Free forever</div>
+        <ul class="features">
+          <li>5 design comparisons/day</li>
+          <li>SSIM + pixel diff</li>
+          <li>CLI access</li>
+          <li>Community support</li>
+        </ul>
+        <button class="btn">Get started</button>
+      </div>
+      <div class="card popular">
+        <div class="popular-badge">Most Popular</div>
+        <h3>Pro</h3>
+        <p class="desc">For professional developers and small teams</p>
+        <div class="price">$29 <span>/month</span></div>
+        <div class="billing">Billed annually ($348/yr)</div>
+        <ul class="features">
+          <li>Unlimited comparisons</li>
+          <li>SSIM + pixel + Vision AI</li>
+          <li>MCP server integration</li>
+          <li>Boulder Loop automation</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-accent">Get started</button>
+      </div>
+      <div class="card">
+        <h3>Enterprise</h3>
+        <p class="desc">For teams that need scale and control</p>
+        <div class="price">Custom</div>
+        <div class="billing">Contact for pricing</div>
+        <ul class="features">
+          <li>Everything in Pro</li>
+          <li>CI/CD integration</li>
+          <li>Design drift detection</li>
+          <li>Custom comparison strategies</li>
+          <li>Dedicated support</li>
+        </ul>
+        <button class="btn">Contact sales</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

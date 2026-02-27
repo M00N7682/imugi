@@ -1,6 +1,8 @@
 import { Command } from 'commander';
-import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { readFile, writeFile, access } from 'fs/promises';
+import { resolve, join } from 'path';
+import { execFile as execFileCb } from 'child_process';
+import { promisify } from 'util';
 import { loadConfig } from './config/loader.js';
 import { ensureAuthenticated, logout, loadStoredToken } from './agent/auth.js';
 import { startMcpServer } from './mcp/server.js';
@@ -11,6 +13,8 @@ import { compareImages } from './core/comparator.js';
 import { analyzeDifferences, generateReportText } from './core/analyzer.js';
 import { runBoulderLoop } from './agent/loop.js';
 import sharp from 'sharp';
+
+const execFileAsync = promisify(execFileCb);
 
 process.on('unhandledRejection', (reason) => {
   process.stderr.write(`Fatal: ${reason instanceof Error ? reason.message : String(reason)}\n`);
@@ -185,6 +189,75 @@ program
     process.stdout.write(`Pixel diff: ${(comparison.pixelDiff.diffPercentage * 100).toFixed(2)}%\n`);
     process.stdout.write(`Composite score: ${comparison.compositeScore.toFixed(4)}\n`);
     process.stdout.write(`Diff regions: ${comparison.diffRegions.length}\n`);
+  });
+
+program
+  .command('init')
+  .description('Set up imugi: install Playwright browser, detect project, create config')
+  .action(async () => {
+    const w = (msg: string) => process.stdout.write(msg);
+    w('\n  imugi init — One-click setup\n\n');
+
+    // 1. Playwright browser
+    w('  [1/4] Installing Playwright Chromium...\n');
+    try {
+      await execFileAsync('npx', ['playwright', 'install', 'chromium'], { timeout: 120000 });
+      w('        Done.\n');
+    } catch (err) {
+      w(`        Warning: ${(err as Error).message}\n`);
+      w('        Run manually: npx playwright install chromium\n');
+    }
+
+    // 2. Detect project
+    w('  [2/4] Detecting project...\n');
+    const context = await detectProjectContext(process.cwd());
+    const stack = [
+      context.framework ?? 'html',
+      context.metaFramework ? `(${context.metaFramework})` : null,
+      context.css.method ?? 'css',
+      context.language,
+    ].filter(Boolean).join(' + ');
+    w(`        ${stack}\n`);
+
+    // 3. Create config
+    const configPath = join(process.cwd(), 'imugi.config.json');
+    let configExists = false;
+    try { await access(configPath); configExists = true; } catch { /* noop */ }
+
+    if (configExists) {
+      w('  [3/4] Config file already exists, skipping.\n');
+    } else {
+      w('  [3/4] Creating imugi.config.json...\n');
+      const config = {
+        comparison: { threshold: 0.95, maxIterations: 10 },
+        rendering: {
+          port: context.devServer.port,
+          viewport: { width: 1440, height: 900 },
+        },
+      };
+      await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+      w('        Done.\n');
+    }
+
+    // 4. Check API key
+    w('  [4/4] Checking authentication...\n');
+    const envKey = process.env.ANTHROPIC_API_KEY || process.env.IMUGI_API_KEY;
+    if (envKey) {
+      w('        API key found in environment.\n');
+    } else {
+      const token = await loadStoredToken();
+      if (token) {
+        w('        OAuth token found.\n');
+      } else {
+        w('        No API key found.\n');
+        w('        Set ANTHROPIC_API_KEY or run: imugi auth login\n');
+      }
+    }
+
+    w('\n  Setup complete! Next steps:\n');
+    w('    1. imugi auth login          (if not authenticated)\n');
+    w('    2. imugi generate design.png  (one-shot generation)\n');
+    w('    3. imugi                      (interactive agent)\n\n');
   });
 
 program
