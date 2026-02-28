@@ -1,0 +1,185 @@
+name: 'Imugi Visual Compare'
+description: 'Run imugi visual comparison against a design image and optionally post results as a PR comment'
+
+inputs:
+  design-image:
+    description: 'Path to the design image file (png/jpg/webp)'
+    required: true
+  url:
+    description: 'URL to capture a screenshot from'
+    required: false
+    default: 'http://localhost:3000'
+  threshold:
+    description: 'Similarity threshold (0.0 - 1.0). Scores at or above this value are considered passing.'
+    required: false
+    default: '0.95'
+  fail-below:
+    description: 'Whether to fail the job if the composite score is below the threshold'
+    required: false
+    default: 'false'
+
+outputs:
+  ssim:
+    description: 'SSIM score (0.0 - 1.0)'
+    value: ${{ steps.parse.outputs.ssim }}
+  pixel-diff:
+    description: 'Pixel diff percentage (0.0 - 100.0)'
+    value: ${{ steps.parse.outputs.pixel_diff }}
+  composite-score:
+    description: 'Composite score (0.0 - 1.0)'
+    value: ${{ steps.parse.outputs.composite_score }}
+  diff-regions:
+    description: 'Number of diff regions detected'
+    value: ${{ steps.parse.outputs.diff_regions }}
+  passed:
+    description: 'Whether the composite score meets the threshold'
+    value: ${{ steps.parse.outputs.passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install imugi-ai
+      shell: bash
+      run: npm install -g imugi-ai
+
+    - name: Install Playwright Chromium
+      shell: bash
+      run: npx playwright install chromium --with-deps
+
+    - name: Run imugi compare
+      id: compare
+      shell: bash
+      run: |
+        set +e
+        OUTPUT=$(imugi compare "${{ inputs.design-image }}" --url "${{ inputs.url }}" 2>&1)
+        EXIT_CODE=$?
+        set -e
+
+        echo "--- imugi compare output ---"
+        echo "$OUTPUT"
+        echo "----------------------------"
+
+        # Store raw output for the parse step
+        # Use a delimiter to handle multiline safely
+        DELIMITER=$(openssl rand -hex 16)
+        echo "raw_output<<${DELIMITER}" >> "$GITHUB_OUTPUT"
+        echo "$OUTPUT" >> "$GITHUB_OUTPUT"
+        echo "${DELIMITER}" >> "$GITHUB_OUTPUT"
+
+        echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+
+    - name: Parse comparison results
+      id: parse
+      shell: bash
+      run: |
+        RAW_OUTPUT='${{ steps.compare.outputs.raw_output }}'
+
+        # Extract SSIM score
+        SSIM=$(echo "$RAW_OUTPUT" | grep -oP 'SSIM:\s*\K[0-9]+\.[0-9]+' || echo "0.0000")
+
+        # Extract pixel diff percentage
+        PIXEL_DIFF=$(echo "$RAW_OUTPUT" | grep -oP 'Pixel diff:\s*\K[0-9]+\.[0-9]+' || echo "0.00")
+
+        # Extract composite score
+        COMPOSITE=$(echo "$RAW_OUTPUT" | grep -oP 'Composite score:\s*\K[0-9]+\.[0-9]+' || echo "0.0000")
+
+        # Extract diff regions count
+        REGIONS=$(echo "$RAW_OUTPUT" | grep -oP 'Diff regions:\s*\K[0-9]+' || echo "0")
+
+        # Determine pass/fail
+        THRESHOLD="${{ inputs.threshold }}"
+        PASSED=$(echo "$COMPOSITE $THRESHOLD" | awk '{print ($1 >= $2) ? "true" : "false"}')
+
+        echo "ssim=${SSIM}" >> "$GITHUB_OUTPUT"
+        echo "pixel_diff=${PIXEL_DIFF}" >> "$GITHUB_OUTPUT"
+        echo "composite_score=${COMPOSITE}" >> "$GITHUB_OUTPUT"
+        echo "diff_regions=${REGIONS}" >> "$GITHUB_OUTPUT"
+        echo "passed=${PASSED}" >> "$GITHUB_OUTPUT"
+
+        echo "Parsed results:"
+        echo "  SSIM:            ${SSIM}"
+        echo "  Pixel diff:      ${PIXEL_DIFF}%"
+        echo "  Composite score: ${COMPOSITE}"
+        echo "  Diff regions:    ${REGIONS}"
+        echo "  Passed:          ${PASSED}"
+
+    - name: Post PR comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const ssim = '${{ steps.parse.outputs.ssim }}';
+          const pixelDiff = '${{ steps.parse.outputs.pixel_diff }}';
+          const composite = '${{ steps.parse.outputs.composite_score }}';
+          const regions = '${{ steps.parse.outputs.diff_regions }}';
+          const passed = '${{ steps.parse.outputs.passed }}' === 'true';
+          const threshold = '${{ inputs.threshold }}';
+          const designImage = '${{ inputs.design-image }}';
+          const url = '${{ inputs.url }}';
+
+          const statusIcon = passed ? ':white_check_mark:' : ':x:';
+          const statusText = passed ? 'PASSED' : 'FAILED';
+
+          const body = [
+            `## ${statusIcon} Imugi Visual Comparison — ${statusText}`,
+            '',
+            '| Metric | Value |',
+            '| --- | --- |',
+            `| **Composite Score** | \`${composite}\` |`,
+            `| **SSIM** | \`${ssim}\` |`,
+            `| **Pixel Diff** | \`${pixelDiff}%\` |`,
+            `| **Diff Regions** | \`${regions}\` |`,
+            `| **Threshold** | \`${threshold}\` |`,
+            '',
+            '<details>',
+            '<summary>Configuration</summary>',
+            '',
+            `- **Design image:** \`${designImage}\``,
+            `- **URL:** \`${url}\``,
+            `- **Fail below threshold:** \`${{ inputs.fail-below }}\``,
+            '',
+            '</details>',
+            '',
+            '---',
+            '*Posted by [imugi](https://github.com/M00N7682/imugi) visual-compare action*',
+          ].join('\n');
+
+          // Look for an existing imugi comment to update instead of creating duplicates
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const marker = 'Imugi Visual Comparison';
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+            core.info(`Updated existing PR comment #${existing.id}`);
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+            core.info('Created new PR comment');
+          }
+
+    - name: Enforce threshold
+      if: inputs.fail-below == 'true' && steps.parse.outputs.passed == 'false'
+      shell: bash
+      run: |
+        echo "::error::Visual comparison failed: composite score ${{ steps.parse.outputs.composite_score }} is below threshold ${{ inputs.threshold }}"
+        exit 1

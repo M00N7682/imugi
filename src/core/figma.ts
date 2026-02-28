@@ -11,6 +11,8 @@ export interface FigmaExportOptions {
   token: string;
   scale?: number;
   format?: 'png' | 'jpg' | 'svg' | 'pdf';
+  /** @internal Base delay in ms for retry backoff (default: 1000). Set to 0 in tests. */
+  _retryBaseDelay?: number;
 }
 
 /**
@@ -64,17 +66,43 @@ export function resolveToken(configToken?: string | null): string {
   );
 }
 
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  { maxRetries = 3, baseDelay = 1000 }: { maxRetries?: number; baseDelay?: number } = {},
+): Promise<Response> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, init);
+
+    if (response.ok) return response;
+    if (response.status === 429 || response.status >= 500) {
+      lastError = new Error(`HTTP ${response.status}`);
+      if (attempt < maxRetries) {
+        const retryAfter = response.headers.get('retry-after');
+        const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : baseDelay * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+    }
+
+    return response;
+  }
+  throw lastError ?? new Error('fetchWithRetry: unexpected state');
+}
+
 /**
  * Export a Figma node as an image buffer via the Figma REST API.
+ * Retries on 429 (rate limit) and 5xx errors with exponential backoff.
  */
 export async function exportFigmaImage(options: FigmaExportOptions): Promise<Buffer> {
-  const { fileKey, nodeId, token, scale = 2, format = 'png' } = options;
+  const { fileKey, nodeId, token, scale = 2, format = 'png', _retryBaseDelay = 1000 } = options;
 
   const apiUrl = `https://api.figma.com/v1/images/${fileKey}?ids=${encodeURIComponent(nodeId)}&scale=${scale}&format=${format}`;
 
-  const response = await fetch(apiUrl, {
+  const response = await fetchWithRetry(apiUrl, {
     headers: { 'X-Figma-Token': token },
-  });
+  }, { baseDelay: _retryBaseDelay });
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
@@ -85,7 +113,7 @@ export async function exportFigmaImage(options: FigmaExportOptions): Promise<Buf
       throw new Error(`Figma API: File not found — check the file key "${fileKey}" (404)`);
     }
     if (response.status === 429) {
-      throw new Error('Figma API: Rate limited — wait a moment and try again (429)');
+      throw new Error('Figma API: Rate limited after retries — try again later (429)');
     }
     throw new Error(`Figma API error ${response.status}: ${body}`);
   }
@@ -101,7 +129,7 @@ export async function exportFigmaImage(options: FigmaExportOptions): Promise<Buf
     throw new Error(`Figma API returned no image for node "${nodeId}". Check that the node ID exists in the file.`);
   }
 
-  const imageResponse = await fetch(imageUrl);
+  const imageResponse = await fetchWithRetry(imageUrl, {}, { baseDelay: _retryBaseDelay });
   if (!imageResponse.ok) {
     throw new Error(`Failed to download exported image: ${imageResponse.status}`);
   }

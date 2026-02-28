@@ -2,7 +2,7 @@
 
 All notable changes to imugi will be documented in this file.
 
-## [1.1.0] - 2026-02-27
+## [1.1.0] - 2026-02-28
 
 ### Added
 - Figma integration: export Figma frames directly via URL using the Figma REST API
@@ -12,6 +12,20 @@ All notable changes to imugi will be documented in this file.
 - Added `figmaUrl` parameter to `imugi_compare` MCP tool for direct Figma-to-screenshot comparison
 - Config support for `figma.token` and `figma.defaultScale` in `imugi.config.json`
 - Environment variable support: `FIGMA_TOKEN` / `FIGMA_PERSONAL_ACCESS_TOKEN`
+- HTML comparison report: `imugi compare --report` generates a visual side-by-side report with scores, heatmap, and diff regions
+- Reusable GitHub Action (`.github/actions/visual-compare/`) for CI visual regression testing with PR comments
+- Global `--verbose` CLI flag for debug output
+- `imugi init` now checks for Figma token and provides setup guidance (step 5/5)
+- 29 unit tests for `figma.ts` (URL parsing, token resolution, API export with retry)
+- Vitest coverage configuration (`npm run test:coverage`)
+
+### Improved
+- All MCP tool handlers wrapped in try-catch — errors return structured messages instead of crashing the server
+- Figma API calls retry on 429 (rate limit) and 5xx errors with exponential backoff
+- `imugi_compare` now accepts `figmaUrl` as alternative to `designImagePath` (both optional)
+
+### Changed
+- Total test count: 147 → 176
 
 ## [1.0.2] - 2025-02-27
 

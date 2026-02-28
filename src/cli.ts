@@ -13,6 +13,7 @@ import { compareImages } from './core/comparator.js';
 import { analyzeDifferences, generateReportText } from './core/analyzer.js';
 import { runBoulderLoop } from './agent/loop.js';
 import { parseFigmaUrl, exportFigmaImage, resolveToken } from './core/figma.js';
+import { generateHtmlReport } from './core/report.js';
 import sharp from 'sharp';
 
 const execFileAsync = promisify(execFileCb);
@@ -67,7 +68,14 @@ program
   .option('--threshold <number>', 'Similarity threshold (0.8-0.99)', parseFloat)
   .option('--max-iterations <number>', 'Maximum iterations', parseInt)
   .option('--url <url>', 'Dev server URL (skip auto-detection)')
-  .option('--config <path>', 'Config file path');
+  .option('--config <path>', 'Config file path')
+  .option('--verbose', 'Enable verbose debug output');
+
+function verbose(...args: unknown[]): void {
+  if (program.opts().verbose) {
+    process.stderr.write(`[debug] ${args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`);
+  }
+}
 
 function buildCliOverrides(opts: Record<string, unknown>): Record<string, unknown> {
   const overrides: Record<string, unknown> = {};
@@ -118,10 +126,12 @@ program
       configPath: opts.config as string | undefined,
       cliOverrides: buildCliOverrides(opts),
     });
+    verbose('Config loaded', config);
 
     const auth = await ensureAuthenticated(config.auth.apiKey);
     const client = createClaudeClient(auth);
     const context = await detectProjectContext(process.cwd());
+    verbose('Project context', context);
     const renderer = createRenderer(config);
 
     process.stdout.write('Starting dev server and browser...\n');
@@ -155,12 +165,14 @@ program
   .command('compare <design-image>')
   .description('Compare a design image against the current running page')
   .option('--screenshot <path>', 'Use an existing screenshot instead of capturing')
-  .action(async (designImagePath: string, cmdOpts: { screenshot?: string }) => {
+  .option('--report [dir]', 'Generate an HTML report (default: .imugi/reports)')
+  .action(async (designImagePath: string, cmdOpts: { screenshot?: string; report?: string | true }) => {
     const opts = program.opts();
     const config = await loadConfig({
       configPath: opts.config as string | undefined,
       cliOverrides: buildCliOverrides(opts),
     });
+    verbose('Config loaded', config);
 
     const designBuffer = await readFile(resolve(designImagePath));
     const designMeta = await sharp(designBuffer).metadata();
@@ -190,6 +202,18 @@ program
     process.stdout.write(`Pixel diff: ${(comparison.pixelDiff.diffPercentage * 100).toFixed(2)}%\n`);
     process.stdout.write(`Composite score: ${comparison.compositeScore.toFixed(4)}\n`);
     process.stdout.write(`Diff regions: ${comparison.diffRegions.length}\n`);
+
+    if (cmdOpts.report !== undefined) {
+      const reportDir = typeof cmdOpts.report === 'string' ? cmdOpts.report : join(process.cwd(), '.imugi', 'reports');
+      const htmlPath = await generateHtmlReport({
+        designBuffer,
+        screenshotBuffer: resized,
+        comparison,
+        report,
+        outputDir: reportDir,
+      });
+      process.stdout.write(`\nHTML report: ${htmlPath}\n`);
+    }
   });
 
 program
@@ -206,6 +230,7 @@ program
     });
 
     const parsed = parseFigmaUrl(url);
+    verbose('Parsed Figma URL', parsed);
     if (!parsed.nodeId) {
       process.stderr.write('Error: Figma URL must include a node-id parameter (e.g. ?node-id=42-1234)\n');
       process.exit(1);
@@ -213,6 +238,7 @@ program
 
     const token = resolveToken(config.figma.token);
     const scale = cmdOpts.scale ?? config.figma.defaultScale;
+    verbose(`Export settings: scale=${scale}, output=${cmdOpts.output}`);
 
     process.stdout.write(`Exporting Figma frame (${parsed.fileKey}, node ${parsed.nodeId}, ${scale}x)...\n`);
     const buffer = await exportFigmaImage({
@@ -261,7 +287,7 @@ program
     w('\n  imugi init — One-click setup\n\n');
 
     // 1. Playwright browser
-    w('  [1/4] Installing Playwright Chromium...\n');
+    w('  [1/5] Installing Playwright Chromium...\n');
     try {
       await execFileAsync('npx', ['playwright', 'install', 'chromium'], { timeout: 120000 });
       w('        Done.\n');
@@ -271,7 +297,7 @@ program
     }
 
     // 2. Detect project
-    w('  [2/4] Detecting project...\n');
+    w('  [2/5] Detecting project...\n');
     const context = await detectProjectContext(process.cwd());
     const stack = [
       context.framework ?? 'html',
@@ -287,9 +313,9 @@ program
     try { await access(configPath); configExists = true; } catch { /* noop */ }
 
     if (configExists) {
-      w('  [3/4] Config file already exists, skipping.\n');
+      w('  [3/5] Config file already exists, skipping.\n');
     } else {
-      w('  [3/4] Creating imugi.config.json...\n');
+      w('  [3/5] Creating imugi.config.json...\n');
       const config = {
         comparison: { threshold: 0.95, maxIterations: 10 },
         rendering: {
@@ -302,7 +328,7 @@ program
     }
 
     // 4. Check API key
-    w('  [4/4] Checking authentication...\n');
+    w('  [4/5] Checking authentication...\n');
     const envKey = process.env.ANTHROPIC_API_KEY || process.env.IMUGI_API_KEY;
     if (envKey) {
       w('        API key found in environment.\n');
@@ -316,10 +342,22 @@ program
       }
     }
 
+    // 5. Check Figma token
+    w('  [5/5] Checking Figma integration...\n');
+    const figmaToken = process.env.FIGMA_TOKEN || process.env.FIGMA_PERSONAL_ACCESS_TOKEN;
+    if (figmaToken) {
+      w('        Figma token found in environment.\n');
+    } else {
+      w('        No Figma token found (optional).\n');
+      w('        To use Figma integration: export FIGMA_TOKEN=your-token\n');
+      w('        Get one at: https://www.figma.com/developers/api#access-tokens\n');
+    }
+
     w('\n  Setup complete! Next steps:\n');
     w('    1. imugi auth login          (if not authenticated)\n');
     w('    2. imugi generate design.png  (one-shot generation)\n');
-    w('    3. imugi                      (interactive agent)\n\n');
+    w('    3. imugi figma <url>          (export from Figma)\n');
+    w('    4. imugi                      (interactive agent)\n\n');
   });
 
 program
