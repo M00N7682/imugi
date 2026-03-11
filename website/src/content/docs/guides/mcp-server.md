@@ -5,6 +5,8 @@ description: How to use imugi as an MCP server with Claude Code or Cursor
 
 imugi includes a built-in MCP (Model Context Protocol) server that lets AI tools call imugi's visual verification tools directly.
 
+> **No API key required.** In MCP mode, imugi only provides visual capabilities (screenshot, comparison, heatmap). Your AI editor handles the reasoning and code generation using its own model. This means zero additional API cost — just your existing Claude Code or Cursor subscription.
+
 ## Configuration
 
 ### Claude Code

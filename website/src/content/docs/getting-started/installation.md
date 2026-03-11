@@ -30,14 +30,20 @@ This will:
 
 ## Authentication
 
-imugi uses Claude (Anthropic) for code generation and vision analysis. You need one of:
+### MCP Mode (No API key needed)
 
-### Option A: API Key
+When used as an MCP server with Claude Code or Cursor, **no API key is required**. imugi provides visual tools (capture, compare, heatmap) while your AI editor handles the reasoning and code generation. Zero additional cost.
+
+### CLI / Agent Mode
+
+For standalone usage, imugi needs Claude API access for code generation and vision analysis:
+
+**Option A: API Key**
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-### Option B: OAuth (Interactive Agent only)
+**Option B: OAuth (Interactive Agent only)**
 ```bash
 imugi auth login
 ```

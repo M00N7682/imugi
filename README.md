@@ -8,16 +8,19 @@
 [![GitHub stars](https://img.shields.io/github/stars/M00N7682/imugi?style=flat-square&color=ffcb47&labelColor=black)](https://github.com/M00N7682/imugi/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?labelColor=black&style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?labelColor=black&style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Tests](https://img.shields.io/badge/tests-282%20passed-10B981?labelColor=black&style=flat-square)](https://github.com/M00N7682/imugi)
 
 **Give AI eyes to see your frontend.**
 
 *Design-to-code with visual verification. imugi captures screenshots, compares them pixel-by-pixel against your design, and iterates until the code matches — automatically.*
 
-[Get Started](#quick-start) · [MCP Tools](#mcp-tools) · [Configuration](#configuration) · [Contributing](CONTRIBUTING.md)
+[Get Started](#quick-start) · [Docs](https://imugi.ddstudio.co.kr) · [MCP Tools](#mcp-tools) · [Configuration](#configuration) · [Contributing](CONTRIBUTING.md)
 
 <br />
 
-<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/demo-visual.png" alt="imugi — Design to Code visual verification flow" width="820" />
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/demo-remotion.gif" alt="imugi — Design to Code demo" width="820" />
+
+
 
 </div>
 
@@ -62,7 +65,7 @@ imugi init
 
 ### Step 2: Add to your AI tool
 
-Add imugi as an MCP server in your Claude Code or Cursor config:
+Add imugi as an MCP server in your Claude Code or Cursor config (no API key required):
 
 ```json
 {
@@ -131,6 +134,8 @@ imugi mcp
 ```
 
 Works with Claude Code, Cursor, and any MCP-compatible tool. The AI calls imugi tools directly.
+
+> **No API key needed for MCP mode.** imugi provides the eyes (capture, compare, heatmap) — your AI editor provides the brain (analysis, code generation, patching). Zero additional cost.
 
 ### As Interactive Agent
 
