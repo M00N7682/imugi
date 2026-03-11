@@ -10,10 +10,12 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.2.1",
-    "@astrojs/starlight": "^0.31.1",
-    "astro": "^4.16.19",
-    "sharp": "^0.34.5",
-    "zod": "^3.25.76"
+    "@astrojs/starlight": "^0.33.0",
+    "astro": "^5.5.0",
+    "sharp": "^0.34.2"
+  },
+  "overrides": {
+    "zod": "3.25.76",
+    "@astrojs/sitemap": "3.2.1"
   }
 }

@@ -9,15 +9,13 @@ export default defineConfig({
 		starlight({
 			title: 'imugi',
 			description: 'Design to Code — AI-powered frontend builder with visual verification',
-			disable404Route: false,
-			pagefind: true,
 			logo: {
 				src: './src/assets/logo.png',
 				alt: 'imugi',
 			},
-			social: {
-				github: 'https://github.com/M00N7682/imugi',
-			},
+			social: [
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/M00N7682/imugi' },
+			],
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [
 				{
