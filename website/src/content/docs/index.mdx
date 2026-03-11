@@ -1,0 +1,82 @@
+---
+title: imugi — Design to Code
+description: AI-powered frontend builder with visual verification. Captures screenshots, compares pixel-by-pixel, and iterates until the code matches your design.
+template: splash
+hero:
+  tagline: Give AI eyes to see your frontend. Design-to-code with visual verification — captures, compares, and patches until the code matches your design.
+  image:
+    file: ../../assets/logo.png
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/M00N7682/imugi
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<div style="text-align: center; margin-bottom: 2rem;">
+<code style="background: var(--sl-color-gray-5); border: 1px solid var(--sl-color-gray-4); border-radius: 8px; padding: 0.75rem 1.5rem; font-size: 0.95rem; color: var(--sl-color-accent);">npm install -g imugi-ai</code>
+</div>
+
+## How it works
+
+<div class="flow-diagram">
+{`Design Image → Code Gen → Screenshot → Compare → Analyze → Patch
+                                                              ↓
+                                                       Score ≥ 95%? → Done!
+                                                              ↓ No
+                                                            Repeat`}
+</div>
+
+## Features
+
+<CardGrid stagger>
+	<Card title="Visual Comparison Engine" icon="magnifier">
+		SSIM + pixel diff + Claude Vision scoring with heatmap output. Know exactly where your code diverges from the design.
+	</Card>
+	<Card title="Boulder Loop" icon="rocket">
+		Iterative code improvement that keeps going until the design match threshold is met. Set it and forget it.
+	</Card>
+	<Card title="MCP Server" icon="puzzle">
+		Drop-in integration with Claude Code, Cursor, or any MCP-compatible AI tool. 6 tools out of the box.
+	</Card>
+	<Card title="Figma Integration" icon="document">
+		Export Figma frames directly via URL. No manual export, no context switching.
+	</Card>
+	<Card title="Project Detection" icon="setting">
+		Auto-detects React, Vue, Svelte, Tailwind, CSS Modules, TypeScript, and more.
+	</Card>
+	<Card title="Smart Patching" icon="pencil">
+		Full regeneration for low scores, surgical patches for high scores. The right strategy, automatically.
+	</Card>
+</CardGrid>
+
+<div style="text-align: center; margin: 3rem 0;">
+<img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/demo-visual.png" alt="imugi workflow" style="max-width: 820px; width: 100%; border-radius: 12px; border: 1px solid var(--sl-color-gray-4);" />
+</div>
+
+## Quick MCP Setup
+
+Add imugi to your Claude Code or Cursor config:
+
+```json
+{
+  "mcpServers": {
+    "imugi": {
+      "command": "npx",
+      "args": ["-y", "imugi-ai", "mcp"]
+    }
+  }
+}
+```
+
+Then just ask your AI to implement a design — imugi handles the rest.
+
+<div style="text-align: center; margin-top: 2rem;">
+  <a href="/getting-started/installation/" style="display: inline-flex; align-items: center; padding: 0.75rem 2rem; background: var(--sl-color-accent); color: #000; border-radius: 8px; font-weight: 600; text-decoration: none;">Read the Docs →</a>
+</div>
