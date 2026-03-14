@@ -6,3 +6,4 @@ dist/
 !.env.example
 .imugi/
 *.tsbuildinfo
+PROMOTION*.md
