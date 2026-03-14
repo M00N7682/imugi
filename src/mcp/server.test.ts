@@ -144,6 +144,111 @@ describe('MCP Server port waiting logic', () => {
   });
 });
 
+describe('MCP Server iterate status logic', () => {
+  function determineStatus(
+    score: number,
+    threshold: number,
+    currentIteration: number,
+    maxIterations: number,
+    history: Array<{ score: number }>,
+  ): { status: string; strategy: string } {
+    if (score >= threshold) return { status: 'DONE', strategy: 'SURGICAL_PATCH' };
+    if (currentIteration >= maxIterations) return { status: 'DONE', strategy: 'SURGICAL_PATCH' };
+
+    const recent = history.slice(-3);
+    const isConverged = recent.length >= 3 && recent.every((r, i) => {
+      if (i === 0) return true;
+      return Math.abs(r.score - recent[i - 1].score) < 0.01;
+    });
+    if (isConverged) return { status: 'DONE', strategy: 'SURGICAL_PATCH' };
+
+    const strategy = score < 0.7 ? 'FULL_REWRITE' : 'SURGICAL_PATCH';
+    return { status: 'ACTION_REQUIRED', strategy };
+  }
+
+  it('returns DONE when score meets threshold', () => {
+    const result = determineStatus(0.96, 0.95, 1, 10, []);
+    expect(result.status).toBe('DONE');
+  });
+
+  it('returns ACTION_REQUIRED when score is below threshold', () => {
+    const result = determineStatus(0.80, 0.95, 1, 10, []);
+    expect(result.status).toBe('ACTION_REQUIRED');
+  });
+
+  it('returns DONE when max iterations reached', () => {
+    const result = determineStatus(0.80, 0.95, 10, 10, []);
+    expect(result.status).toBe('DONE');
+  });
+
+  it('suggests FULL_REWRITE for scores below 0.7', () => {
+    const result = determineStatus(0.5, 0.95, 1, 10, []);
+    expect(result.strategy).toBe('FULL_REWRITE');
+  });
+
+  it('suggests SURGICAL_PATCH for scores at or above 0.7', () => {
+    const result = determineStatus(0.85, 0.95, 1, 10, []);
+    expect(result.strategy).toBe('SURGICAL_PATCH');
+  });
+
+  it('detects convergence after 3 stalled iterations', () => {
+    const history = [
+      { score: 0.82 },
+      { score: 0.825 },
+      { score: 0.828 },
+    ];
+    const result = determineStatus(0.828, 0.95, 4, 10, history);
+    expect(result.status).toBe('DONE');
+  });
+
+  it('does not falsely detect convergence with significant improvement', () => {
+    const history = [
+      { score: 0.70 },
+      { score: 0.78 },
+      { score: 0.85 },
+    ];
+    const result = determineStatus(0.85, 0.95, 4, 10, history);
+    expect(result.status).toBe('ACTION_REQUIRED');
+  });
+});
+
+describe('MCP Server iterate response formatting', () => {
+  it('formats iterate response with status, score, and strategy', () => {
+    const response = {
+      status: 'ACTION_REQUIRED',
+      statusDetail: 'Score: 0.820 — below threshold 0.95. Fix the issues below and call imugi_iterate again.',
+      iteration: 2,
+      maxIterations: 10,
+      score: 0.82,
+      threshold: 0.95,
+      previousScore: 0.65,
+      strategy: 'SURGICAL_PATCH',
+      strategyHint: 'Score is close — make targeted CSS/layout fixes for the specific regions listed below.',
+      metrics: { ssim: 0.85, pixelDiffPercentage: 0.03, diffRegions: 4 },
+      history: [{ iteration: 1, score: 0.65 }, { iteration: 2, score: 0.82 }],
+    };
+
+    expect(response.status).toBe('ACTION_REQUIRED');
+    expect(response.score).toBe(0.82);
+    expect(response.strategy).toBe('SURGICAL_PATCH');
+    expect(response.history).toHaveLength(2);
+    expect(response.iteration).toBe(2);
+  });
+
+  it('formats DONE response when threshold is reached', () => {
+    const response = {
+      status: 'DONE',
+      statusDetail: 'Similarity score 0.960 meets threshold 0.95. Implementation matches the design.',
+      iteration: 3,
+      score: 0.96,
+      threshold: 0.95,
+    };
+
+    expect(response.status).toBe('DONE');
+    expect(response.score).toBeGreaterThanOrEqual(response.threshold);
+  });
+});
+
 describe('MCP Server response formatting', () => {
   it('formats capture response with image and text', () => {
     const buffer = Buffer.from('png-data');

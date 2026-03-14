@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { spawn, type ChildProcess } from 'child_process';
 import { createConnection } from 'net';
+import { join } from 'path';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { compareImages } from '../core/comparator.js';
@@ -51,9 +52,12 @@ export async function startMcpServer(): Promise<void> {
     return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true as const };
   }
 
+  // ── Iteration state for imugi_iterate ──
+  const iterationHistory: Array<{ iteration: number; score: number; timestamp: number }> = [];
+
   server.tool(
     'imugi_capture',
-    'Capture a screenshot of a web page at a given URL',
+    'Capture a screenshot of a web page at a given URL. Use imugi_iterate instead for the full design-to-code verification loop.',
     {
       url: z.string().describe('URL to screenshot'),
       width: z.number().int().default(1440).describe('Viewport width'),
@@ -87,7 +91,7 @@ export async function startMcpServer(): Promise<void> {
 
   server.tool(
     'imugi_compare',
-    'Compare a design image against a rendered screenshot. Returns SSIM score, pixel diff, and heatmap.',
+    'Compare a design image against a rendered screenshot. Returns SSIM score, pixel diff, and heatmap. For the full iterative workflow, prefer imugi_iterate which combines capture + compare + analyze.',
     {
       designImagePath: z.string().optional().describe('Path to the design image file (or use figmaUrl instead)'),
       screenshotUrl: z.string().optional().describe('URL to capture screenshot from'),
@@ -177,6 +181,161 @@ export async function startMcpServer(): Promise<void> {
         return {
           content: [{ type: 'text' as const, text: reportText }],
         };
+      } catch (err) {
+        return errorResult(err);
+      }
+    },
+  );
+
+  server.tool(
+    'imugi_iterate',
+    `Run one iteration of the design verification loop: captures a screenshot of your running page, compares it against the design image, and returns a detailed analysis with scores, heatmap, and fix suggestions.
+
+IMPORTANT — Workflow for AI editors (Claude Code, Cursor, etc.):
+1. Generate or patch the frontend code based on the design image.
+2. Call imugi_iterate to verify the result.
+3. If the status is "ACTION_REQUIRED", read the fix suggestions and patch the code accordingly.
+4. Call imugi_iterate again after patching.
+5. Repeat steps 3-4 until the status is "DONE".
+
+The tool tracks iteration history and will tell you when to stop (threshold reached, converged, or max iterations).`,
+    {
+      designImagePath: z.string().optional().describe('Path to the design image file'),
+      figmaUrl: z.string().optional().describe('Figma URL to export as design image (alternative to designImagePath)'),
+      pageUrl: z.string().describe('URL of the running page to screenshot and compare'),
+      viewportWidth: z.number().int().default(1440).describe('Viewport width'),
+      viewportHeight: z.number().int().default(900).describe('Viewport height'),
+      threshold: z.number().min(0).max(1).default(0.95).describe('Similarity threshold to consider the implementation done (0-1)'),
+      maxIterations: z.number().int().min(1).max(50).default(10).describe('Maximum number of iterations before stopping'),
+    },
+    async ({ designImagePath, figmaUrl, pageUrl, viewportWidth, viewportHeight, threshold, maxIterations }) => {
+      try {
+        // ── Resolve design image ──
+        let designBuffer: Buffer;
+        if (figmaUrl) {
+          const parsed = parseFigmaUrl(figmaUrl);
+          if (!parsed.nodeId) {
+            return { content: [{ type: 'text' as const, text: 'Error: Figma URL must include a node-id parameter' }] };
+          }
+          const token = resolveToken();
+          designBuffer = await exportFigmaImage({ fileKey: parsed.fileKey, nodeId: parsed.nodeId, token });
+        } else if (designImagePath) {
+          designBuffer = await readFile(designImagePath);
+        } else {
+          return { content: [{ type: 'text' as const, text: 'Error: Provide either designImagePath or figmaUrl' }] };
+        }
+
+        // ── Capture screenshot ──
+        let screenshotBuffer: Buffer;
+        const browser = await chromium.launch({ headless: true });
+        try {
+          const ctx = await browser.newContext({ viewport: { width: viewportWidth, height: viewportHeight } });
+          const page = await ctx.newPage();
+          await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 15000 });
+          await page.waitForTimeout(500);
+          screenshotBuffer = Buffer.from(await page.screenshot({ fullPage: true, type: 'png' }));
+        } finally {
+          await browser.close();
+        }
+
+        // ── Compare ──
+        const designMeta = await sharp(designBuffer).metadata();
+        const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? viewportWidth, designMeta.height ?? viewportHeight);
+        const comparison = await compareImages(designBuffer, resized);
+
+        // ── Analyze ──
+        const report = analyzeDifferences(comparison);
+        const reportText = generateReportText(report);
+
+        // ── Track iteration ──
+        const currentIteration = iterationHistory.length + 1;
+        const previousScore = iterationHistory.length > 0
+          ? iterationHistory[iterationHistory.length - 1].score
+          : null;
+        iterationHistory.push({
+          iteration: currentIteration,
+          score: comparison.compositeScore,
+          timestamp: Date.now(),
+        });
+
+        // ── Determine status ──
+        const score = comparison.compositeScore;
+        let status: string;
+        let statusDetail: string;
+
+        if (score >= threshold) {
+          status = 'DONE';
+          statusDetail = `Similarity score ${score.toFixed(3)} meets threshold ${threshold}. Implementation matches the design.`;
+        } else if (currentIteration >= maxIterations) {
+          status = 'DONE';
+          statusDetail = `Maximum iterations (${maxIterations}) reached. Best score: ${score.toFixed(3)}. Consider adjusting the threshold or reviewing the remaining differences manually.`;
+        } else {
+          // Check for convergence (3 consecutive stalls)
+          const recent = iterationHistory.slice(-3);
+          const isConverged = recent.length >= 3 && recent.every((r, i) => {
+            if (i === 0) return true;
+            return Math.abs(r.score - recent[i - 1].score) < 0.01;
+          });
+
+          if (isConverged) {
+            status = 'DONE';
+            statusDetail = `Score converged at ${score.toFixed(3)} after ${currentIteration} iterations (no significant improvement in last 3 iterations). Consider a different approach for the remaining differences.`;
+          } else {
+            status = 'ACTION_REQUIRED';
+            const improvement = previousScore !== null ? score - previousScore : 0;
+            const improvementStr = previousScore !== null
+              ? ` (${improvement >= 0 ? '+' : ''}${improvement.toFixed(3)} from previous)`
+              : '';
+            statusDetail = `Score: ${score.toFixed(3)}${improvementStr} — below threshold ${threshold}. Fix the issues below and call imugi_iterate again.`;
+          }
+        }
+
+        // ── Build strategy suggestion ──
+        const strategy = score < 0.7 ? 'FULL_REWRITE' : 'SURGICAL_PATCH';
+        const strategyHint = score < 0.7
+          ? 'Score is low — consider rewriting the component from scratch based on the design.'
+          : 'Score is close — make targeted CSS/layout fixes for the specific regions listed below.';
+
+        // ── Save heatmap to temp file for reference ──
+        const heatmapPath = join(process.cwd(), `.imugi-heatmap-iter${currentIteration}.png`);
+        await writeFile(heatmapPath, comparison.heatmapBuffer);
+
+        // ── Build response ──
+        const resultJson = JSON.stringify({
+          status,
+          statusDetail,
+          iteration: currentIteration,
+          maxIterations,
+          score: Number(score.toFixed(4)),
+          threshold,
+          previousScore: previousScore !== null ? Number(previousScore.toFixed(4)) : null,
+          strategy,
+          strategyHint,
+          metrics: {
+            ssim: comparison.ssim.mssim,
+            pixelDiffPercentage: comparison.pixelDiff.diffPercentage,
+            diffRegions: comparison.diffRegions.length,
+          },
+          heatmapPath,
+          history: iterationHistory.map(h => ({
+            iteration: h.iteration,
+            score: Number(h.score.toFixed(4)),
+          })),
+        }, null, 2);
+
+        const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: 'image/png' }> = [
+          { type: 'text' as const, text: resultJson },
+        ];
+
+        // Include heatmap image for visual reference
+        if (status === 'ACTION_REQUIRED') {
+          content.push(
+            { type: 'image' as const, data: comparison.heatmapBuffer.toString('base64'), mimeType: 'image/png' as const },
+            { type: 'text' as const, text: `--- Diff Analysis ---\n${reportText}\n\n--- What to fix ---\n${strategyHint}` },
+          );
+        }
+
+        return { content };
       } catch (err) {
         return errorResult(err);
       }

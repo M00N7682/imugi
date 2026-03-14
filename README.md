@@ -12,17 +12,27 @@
 
 **Give AI eyes to see your frontend.**
 
-*Design-to-code with visual verification. imugi captures screenshots, compares them pixel-by-pixel against your design, and iterates until the code matches — automatically.*
+*Figma design → pixel-perfect code, with zero manual CSS tweaking.*
 
-[Get Started](#quick-start) · [Docs](https://imugi.ddstudio.co.kr) · [MCP Tools](#mcp-tools) · [Configuration](#configuration) · [Contributing](CONTRIBUTING.md)
+*imugi is an MCP tool that captures your running UI, compares it against the original design using image similarity, and keeps pushing AI to fix the code until it's a perfect match.*
+
+[Get Started](#quick-start) · [Docs](https://imugi.ddstudio.co.kr) · [MCP Tools](#mcp-tools) · [Examples](#examples) · [Contributing](CONTRIBUTING.md)
 
 <br />
 
 <img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/demo-remotion.gif" alt="imugi — Design to Code demo" width="820" />
 
-
-
 </div>
+
+---
+
+## The Problem
+
+You give AI a Figma design and ask it to build the frontend. The result looks... *close*. But then you spend the next 2 hours manually tweaking padding, font sizes, colors, and alignment — because AI has no way to verify what it actually produced.
+
+**imugi fixes this.** It gives AI the ability to screenshot its own output, compare it pixel-by-pixel against the design, see exactly where the differences are, and fix them — automatically, in a loop, until the implementation matches the design.
+
+No more eyeballing. No more manual CSS tweaking. The AI does it all.
 
 ---
 
@@ -44,11 +54,12 @@ imugi uses **SSIM** (Structural Similarity) + **pixelmatch** + **Claude Vision**
 
 | | Without imugi | With imugi |
 |---|---|---|
-| **Design match** | Eyeball it, hope for the best | Pixel-level verification with composite scoring |
-| **Iteration** | Manual back-and-forth | Automated loop until 95%+ match |
-| **Framework support** | Set up each project manually | Auto-detects React, Vue, Svelte, Tailwind, and more |
-| **AI integration** | Copy-paste between tools | Native MCP server for Claude Code / Cursor |
-| **Strategy** | One-size-fits-all | Smart switching: full regen for low scores, surgical patches for high scores |
+| **Design fidelity** | "Looks close enough" — eyeball and pray | Pixel-level verification with composite score (SSIM + pixel diff + AI vision) |
+| **CSS tweaking** | 2+ hours of manual padding/color/font fixes | AI fixes its own mistakes automatically |
+| **Feedback loop** | You are the feedback loop | imugi is the feedback loop — screenshots, compares, patches, repeats |
+| **Framework support** | Configure each project manually | Auto-detects React, Vue, Svelte, Next.js, Tailwind, CSS Modules, and more |
+| **AI integration** | Copy-paste screenshots between tools | Drop-in MCP server for Claude Code / Cursor — zero setup |
+| **Cost** | Extra API keys, extra subscriptions | **No API key needed in MCP mode** — uses your existing AI editor |
 
 ---
 
@@ -90,15 +101,17 @@ That's it. imugi captures, compares, and patches until the output matches your d
 
 ---
 
-## Example: Design to Code
+## Examples
 
-A terminal-inspired hero section — designed in Pencil, implemented by imugi.
+### Design → Code (zero manual CSS)
+
+A terminal-inspired hero section — designed in Figma/Pencil, implemented entirely by AI + imugi. No manual CSS tweaking involved.
 
 <div align="center">
 <img src="https://raw.githubusercontent.com/M00N7682/imugi/main/assets/example-comparison.png" alt="imugi — design vs implementation comparison" width="820" />
 </div>
 
-> Dark mode terminal aesthetic with JetBrains Mono, `#10B981` green accent, nav bar, hero CTA, 4-step flow diagram, MCP tools grid, and footer — pixel-perfect match from design to code.
+> Left: original design. Right: AI-generated code verified by imugi. The AI iterated autonomously until it achieved a pixel-perfect match — nav bar, hero CTA, flow diagram, MCP tools grid, footer, all matching the design down to the pixel.
 
 See the full example at [`examples/hero-section/`](examples/hero-section/).
 
@@ -115,13 +128,14 @@ See the full example at [`examples/hero-section/`](examples/hero-section/).
 
 ## Features
 
-- **Visual Comparison Engine** — SSIM + pixel diff + Claude Vision scoring with heatmap output
-- **Boulder Loop** — Iterative code improvement that keeps going until the design match threshold is met
-- **MCP Server** — Drop-in integration with Claude Code, Cursor, or any MCP-compatible AI tool
-- **Figma Integration** — Export Figma frames directly via URL, no manual export needed
-- **Project Detection** — Auto-detects framework (React/Vue/Svelte), CSS method (Tailwind/modules/styled-components), language (TypeScript/JavaScript)
+- **Visual Comparison Engine** — SSIM + pixel diff + Claude Vision scoring with red heatmap showing exact diff locations
+- **Boulder Loop** — Automated iterative improvement: capture → compare → patch → repeat until 95%+ match
+- **MCP Server** — Drop-in for Claude Code / Cursor / any MCP-compatible AI tool. No API key needed
+- **Figma Integration** — Export Figma frames directly via URL (`imugi figma <URL>`), no manual export
+- **Project Auto-Detection** — Detects React/Vue/Svelte/Next.js, Tailwind/CSS Modules/styled-components, TypeScript/JavaScript
+- **Smart Patching** — Full rewrite for low scores (< 0.7), surgical CSS fixes for high scores (>= 0.7)
 - **Interactive Agent** — Terminal UI with real-time iteration progress (powered by Ink)
-- **Smart Patching** — Full regeneration for scores below 0.7, surgical patches for scores above 0.7
+- **CI/CD Ready** — GitHub Action for visual regression testing in your pipeline
 
 ---
 
@@ -133,9 +147,9 @@ See the full example at [`examples/hero-section/`](examples/hero-section/).
 imugi mcp
 ```
 
-Works with Claude Code, Cursor, and any MCP-compatible tool. The AI calls imugi tools directly.
+Works with Claude Code, Cursor, and any MCP-compatible tool. The AI calls imugi tools to verify and fix its own frontend output.
 
-> **No API key needed for MCP mode.** imugi provides the eyes (capture, compare, heatmap) — your AI editor provides the brain (analysis, code generation, patching). Zero additional cost.
+> **No API key needed for MCP mode.** imugi provides the eyes (capture, compare, heatmap). Your AI editor provides the brain (code generation, patching). You provide nothing extra — zero additional cost.
 
 ### As Interactive Agent
 
@@ -183,6 +197,7 @@ Requires a Figma personal access token via `FIGMA_TOKEN` environment variable or
 
 | Tool | Description |
 |------|-------------|
+| `imugi_iterate` | **The main loop tool.** Captures screenshot → compares against design → analyzes diffs → returns score + heatmap + fix suggestions + status (`ACTION_REQUIRED` or `DONE`). Call repeatedly after each code fix until status is `DONE`. |
 | `imugi_capture` | Screenshot a URL via headless Chromium |
 | `imugi_compare` | Compare design vs screenshot — returns SSIM score, pixel diff, and heatmap |
 | `imugi_analyze` | Analyze visual differences with actionable fix suggestions |
@@ -268,6 +283,14 @@ src/
 │   └── defaults.ts     # Default configuration
 └── types.ts            # Shared type definitions
 ```
+
+---
+
+## Star History
+
+If imugi helped you skip the manual CSS grind, consider giving it a star.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=M00N7682/imugi&type=Date)](https://star-history.com/#M00N7682/imugi&Date)
 
 ---
 

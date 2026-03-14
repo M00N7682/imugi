@@ -96,7 +96,7 @@ describe('MCP Server E2E', () => {
     }
   }, 15000);
 
-  it('lists all 5 tools after initialization', async () => {
+  it('lists all 7 tools after initialization', async () => {
     const session = createMcpSession();
     try {
       await session.send('initialize', {
@@ -116,9 +116,10 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('imugi_compare');
       expect(toolNames).toContain('imugi_analyze');
       expect(toolNames).toContain('imugi_figma_export');
+      expect(toolNames).toContain('imugi_iterate');
       expect(toolNames).toContain('imugi_detect');
       expect(toolNames).toContain('imugi_serve');
-      expect(result.tools).toHaveLength(6);
+      expect(result.tools).toHaveLength(7);
 
       for (const tool of result.tools) {
         expect(tool.description.length).toBeGreaterThan(10);
