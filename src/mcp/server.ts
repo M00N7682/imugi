@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, access, mkdir, readdir, unlink } from 'fs/promises';
 import { spawn, type ChildProcess } from 'child_process';
 import { createConnection } from 'net';
-import { join } from 'path';
+import { join, resolve, isAbsolute } from 'path';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { compareImages } from '../core/comparator.js';
@@ -14,6 +14,65 @@ import { resizeToMatch } from '../core/renderer.js';
 import { parseFigmaUrl, exportFigmaImage, resolveToken } from '../core/figma.js';
 
 declare const __IMUGI_VERSION__: string;
+
+// ── Helpers ──
+
+async function safeReadFile(filePath: string): Promise<Buffer> {
+  const resolved = resolve(filePath);
+  try {
+    await access(resolved);
+  } catch {
+    throw new Error(`File not found: ${resolved} — check the file path and make sure it exists`);
+  }
+  return readFile(resolved);
+}
+
+function validateFilePath(filePath: string): string {
+  const resolved = resolve(filePath);
+  const cwd = resolve(process.cwd());
+  if (!resolved.startsWith(cwd)) {
+    throw new Error(`Access denied: ${filePath} is outside the project directory (${cwd}). Only files within the project can be accessed.`);
+  }
+  return resolved;
+}
+
+async function safeReadProjectFile(filePath: string): Promise<Buffer> {
+  validateFilePath(filePath);
+  return safeReadFile(filePath);
+}
+
+async function ensureHeatmapDir(): Promise<string> {
+  const dir = join(process.cwd(), '.imugi');
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
+
+async function cleanupOldHeatmaps(dir: string, keepLast: number): Promise<void> {
+  try {
+    const files = await readdir(dir);
+    const heatmaps = files
+      .filter(f => f.startsWith('heatmap-iter-') && f.endsWith('.png'))
+      .sort();
+    const toRemove = heatmaps.slice(0, Math.max(0, heatmaps.length - keepLast));
+    await Promise.all(toRemove.map(f => unlink(join(dir, f)).catch(() => {})));
+  } catch {
+    // cleanup is best-effort
+  }
+}
+
+function pageUrlError(url: string, err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes('ERR_CONNECTION_REFUSED') || msg.includes('ECONNREFUSED')) {
+    return `Dev server not responding at ${url} — is it running? Try: npm run dev (or imugi_serve)`;
+  }
+  if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ENOTFOUND')) {
+    return `Cannot resolve hostname in ${url} — check the URL`;
+  }
+  if (msg.includes('Timeout')) {
+    return `Page load timed out at ${url} — the server may be slow or unresponsive`;
+  }
+  return `Failed to load ${url}: ${msg}`;
+}
 
 export async function startMcpServer(): Promise<void> {
   const spawnedProcesses: ChildProcess[] = [];
@@ -52,16 +111,26 @@ export async function startMcpServer(): Promise<void> {
     return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true as const };
   }
 
-  // ── Iteration state for imugi_iterate ──
-  const iterationHistory: Array<{ iteration: number; score: number; timestamp: number }> = [];
+  // ── Iteration state per design (keyed by resolved design path or figma URL) ──
+  const iterationSessions = new Map<string, Array<{ iteration: number; score: number; timestamp: number }>>();
+
+  function getSessionKey(designImagePath?: string, figmaUrl?: string): string {
+    if (figmaUrl) return `figma:${figmaUrl}`;
+    if (designImagePath) return `file:${resolve(designImagePath)}`;
+    return 'default';
+  }
+
+  // ── Viewport schema reused across tools ──
+  const viewportWidth = z.number().int().min(100).max(7680).default(1440).describe('Viewport width (100-7680)');
+  const viewportHeight = z.number().int().min(100).max(4320).default(900).describe('Viewport height (100-4320)');
 
   server.tool(
     'imugi_capture',
     'Capture a screenshot of a web page at a given URL. Use imugi_iterate instead for the full design-to-code verification loop.',
     {
       url: z.string().describe('URL to screenshot'),
-      width: z.number().int().default(1440).describe('Viewport width'),
-      height: z.number().int().default(900).describe('Viewport height'),
+      width: viewportWidth,
+      height: viewportHeight,
       fullPage: z.boolean().default(true).describe('Capture full page'),
     },
     async ({ url, width, height, fullPage }) => {
@@ -70,7 +139,11 @@ export async function startMcpServer(): Promise<void> {
         try {
           const context = await browser.newContext({ viewport: { width, height } });
           const page = await context.newPage();
-          await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+          try {
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
+          } catch (navErr) {
+            return errorResult(new Error(pageUrlError(url, navErr)));
+          }
           await page.waitForTimeout(500);
           const buffer = await page.screenshot({ fullPage, type: 'png' });
 
@@ -97,10 +170,10 @@ export async function startMcpServer(): Promise<void> {
       screenshotUrl: z.string().optional().describe('URL to capture screenshot from'),
       screenshotPath: z.string().optional().describe('Path to an existing screenshot file'),
       figmaUrl: z.string().optional().describe('Figma URL to export as design image (alternative to designImagePath)'),
-      viewportWidth: z.number().int().default(1440),
-      viewportHeight: z.number().int().default(900),
+      viewportWidth,
+      viewportHeight,
     },
-    async ({ designImagePath, screenshotUrl, screenshotPath, figmaUrl, viewportWidth, viewportHeight }) => {
+    async ({ designImagePath, screenshotUrl, screenshotPath, figmaUrl, viewportWidth: vw, viewportHeight: vh }) => {
       try {
         let designBuffer: Buffer;
 
@@ -112,7 +185,7 @@ export async function startMcpServer(): Promise<void> {
           const token = resolveToken();
           designBuffer = await exportFigmaImage({ fileKey: parsed.fileKey, nodeId: parsed.nodeId, token });
         } else if (designImagePath) {
-          designBuffer = await readFile(designImagePath);
+          designBuffer = await safeReadProjectFile(designImagePath);
         } else {
           return { content: [{ type: 'text' as const, text: 'Error: Provide either designImagePath or figmaUrl' }] };
         }
@@ -120,13 +193,17 @@ export async function startMcpServer(): Promise<void> {
         let screenshotBuffer: Buffer;
 
         if (screenshotPath) {
-          screenshotBuffer = await readFile(screenshotPath);
+          screenshotBuffer = await safeReadProjectFile(screenshotPath);
         } else if (screenshotUrl) {
           const browser = await chromium.launch({ headless: true });
           try {
-            const ctx = await browser.newContext({ viewport: { width: viewportWidth, height: viewportHeight } });
+            const ctx = await browser.newContext({ viewport: { width: vw, height: vh } });
             const page = await ctx.newPage();
-            await page.goto(screenshotUrl, { waitUntil: 'networkidle', timeout: 15000 });
+            try {
+              await page.goto(screenshotUrl, { waitUntil: 'networkidle', timeout: 15000 });
+            } catch (navErr) {
+              return errorResult(new Error(pageUrlError(screenshotUrl, navErr)));
+            }
             await page.waitForTimeout(500);
             screenshotBuffer = Buffer.from(await page.screenshot({ fullPage: true, type: 'png' }));
           } finally {
@@ -137,7 +214,7 @@ export async function startMcpServer(): Promise<void> {
         }
 
         const designMeta = await sharp(designBuffer).metadata();
-        const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? viewportWidth, designMeta.height ?? viewportHeight);
+        const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? vw, designMeta.height ?? vh);
         const comparison = await compareImages(designBuffer, resized);
 
         return {
@@ -170,8 +247,8 @@ export async function startMcpServer(): Promise<void> {
     },
     async ({ designImagePath, screenshotPath }) => {
       try {
-        const designBuffer = await readFile(designImagePath);
-        const screenshotBuffer = await readFile(screenshotPath);
+        const designBuffer = await safeReadProjectFile(designImagePath);
+        const screenshotBuffer = await safeReadProjectFile(screenshotPath);
         const designMeta = await sharp(designBuffer).metadata();
         const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? 1440, designMeta.height ?? 900);
         const comparison = await compareImages(designBuffer, resized);
@@ -198,17 +275,17 @@ IMPORTANT — Workflow for AI editors (Claude Code, Cursor, etc.):
 4. Call imugi_iterate again after patching.
 5. Repeat steps 3-4 until the status is "DONE".
 
-The tool tracks iteration history and will tell you when to stop (threshold reached, converged, or max iterations).`,
+The tool tracks iteration history per design and will tell you when to stop (threshold reached, converged, or max iterations).`,
     {
       designImagePath: z.string().optional().describe('Path to the design image file'),
       figmaUrl: z.string().optional().describe('Figma URL to export as design image (alternative to designImagePath)'),
       pageUrl: z.string().describe('URL of the running page to screenshot and compare'),
-      viewportWidth: z.number().int().default(1440).describe('Viewport width'),
-      viewportHeight: z.number().int().default(900).describe('Viewport height'),
+      viewportWidth,
+      viewportHeight,
       threshold: z.number().min(0).max(1).default(0.95).describe('Similarity threshold to consider the implementation done (0-1)'),
       maxIterations: z.number().int().min(1).max(50).default(10).describe('Maximum number of iterations before stopping'),
     },
-    async ({ designImagePath, figmaUrl, pageUrl, viewportWidth, viewportHeight, threshold, maxIterations }) => {
+    async ({ designImagePath, figmaUrl, pageUrl, viewportWidth: vw, viewportHeight: vh, threshold, maxIterations }) => {
       try {
         // ── Resolve design image ──
         let designBuffer: Buffer;
@@ -220,7 +297,7 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
           const token = resolveToken();
           designBuffer = await exportFigmaImage({ fileKey: parsed.fileKey, nodeId: parsed.nodeId, token });
         } else if (designImagePath) {
-          designBuffer = await readFile(designImagePath);
+          designBuffer = await safeReadProjectFile(designImagePath);
         } else {
           return { content: [{ type: 'text' as const, text: 'Error: Provide either designImagePath or figmaUrl' }] };
         }
@@ -229,9 +306,13 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
         let screenshotBuffer: Buffer;
         const browser = await chromium.launch({ headless: true });
         try {
-          const ctx = await browser.newContext({ viewport: { width: viewportWidth, height: viewportHeight } });
+          const ctx = await browser.newContext({ viewport: { width: vw, height: vh } });
           const page = await ctx.newPage();
-          await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 15000 });
+          try {
+            await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 15000 });
+          } catch (navErr) {
+            return errorResult(new Error(pageUrlError(pageUrl, navErr)));
+          }
           await page.waitForTimeout(500);
           screenshotBuffer = Buffer.from(await page.screenshot({ fullPage: true, type: 'png' }));
         } finally {
@@ -240,19 +321,25 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
 
         // ── Compare ──
         const designMeta = await sharp(designBuffer).metadata();
-        const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? viewportWidth, designMeta.height ?? viewportHeight);
+        const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? vw, designMeta.height ?? vh);
         const comparison = await compareImages(designBuffer, resized);
 
         // ── Analyze ──
         const report = analyzeDifferences(comparison);
         const reportText = generateReportText(report);
 
-        // ── Track iteration ──
-        const currentIteration = iterationHistory.length + 1;
-        const previousScore = iterationHistory.length > 0
-          ? iterationHistory[iterationHistory.length - 1].score
+        // ── Track iteration per design session ──
+        const sessionKey = getSessionKey(designImagePath, figmaUrl);
+        if (!iterationSessions.has(sessionKey)) {
+          iterationSessions.set(sessionKey, []);
+        }
+        const history = iterationSessions.get(sessionKey)!;
+
+        const currentIteration = history.length + 1;
+        const previousScore = history.length > 0
+          ? history[history.length - 1].score
           : null;
-        iterationHistory.push({
+        history.push({
           iteration: currentIteration,
           score: comparison.compositeScore,
           timestamp: Date.now(),
@@ -271,7 +358,7 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
           statusDetail = `Maximum iterations (${maxIterations}) reached. Best score: ${score.toFixed(3)}. Consider adjusting the threshold or reviewing the remaining differences manually.`;
         } else {
           // Check for convergence (3 consecutive stalls)
-          const recent = iterationHistory.slice(-3);
+          const recent = history.slice(-3);
           const isConverged = recent.length >= 3 && recent.every((r, i) => {
             if (i === 0) return true;
             return Math.abs(r.score - recent[i - 1].score) < 0.01;
@@ -296,8 +383,10 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
           ? 'Score is low — consider rewriting the component from scratch based on the design.'
           : 'Score is close — make targeted CSS/layout fixes for the specific regions listed below.';
 
-        // ── Save heatmap to temp file for reference ──
-        const heatmapPath = join(process.cwd(), `.imugi-heatmap-iter${currentIteration}.png`);
+        // ── Save heatmap to .imugi/ directory with cleanup ──
+        const heatmapDir = await ensureHeatmapDir();
+        await cleanupOldHeatmaps(heatmapDir, 5);
+        const heatmapPath = join(heatmapDir, `heatmap-iter-${currentIteration}.png`);
         await writeFile(heatmapPath, comparison.heatmapBuffer);
 
         // ── Build response ──
@@ -317,7 +406,7 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
             diffRegions: comparison.diffRegions.length,
           },
           heatmapPath,
-          history: iterationHistory.map(h => ({
+          history: history.map(h => ({
             iteration: h.iteration,
             score: Number(h.score.toFixed(4)),
           })),
@@ -382,10 +471,10 @@ The tool tracks iteration history and will tell you when to stop (threshold reac
         });
 
         if (outputPath) {
-          const { writeFile: writeFileAsync } = await import('fs/promises');
-          await writeFileAsync(outputPath, buffer);
+          const validatedPath = validateFilePath(outputPath);
+          await writeFile(validatedPath, buffer);
           return {
-            content: [{ type: 'text' as const, text: `Exported Figma frame to ${outputPath} (${buffer.length} bytes, ${scale}x ${format})` }],
+            content: [{ type: 'text' as const, text: `Exported Figma frame to ${validatedPath} (${buffer.length} bytes, ${scale}x ${format})` }],
           };
         }
 

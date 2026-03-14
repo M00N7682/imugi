@@ -73,6 +73,16 @@ export async function computeSSIM(
   const screenshotGray = await sharp(screenshot).grayscale().raw().toBuffer();
 
   const windowSize = 8;
+
+  // Images too small for SSIM windowing — fall back to pixel-level comparison
+  if (width < windowSize || height < windowSize) {
+    const match = designGray.every((val, i) => val === screenshotGray[i]);
+    return {
+      mssim: match ? 1 : 0,
+      performanceMs: Date.now() - startTime,
+    };
+  }
+
   const k1 = 0.01;
   const k2 = 0.03;
   const L = 255;

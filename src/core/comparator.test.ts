@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeCompositeScore } from './comparator.js';
+import { computeCompositeScore, computeSSIM } from './comparator.js';
+import sharp from 'sharp';
 
 describe('computeCompositeScore', () => {
   describe('SSIM only', () => {
@@ -108,6 +109,38 @@ describe('computeCompositeScore', () => {
     it('ssim and layout have equal weight', () => {
       const result = computeCompositeScore({ ssim: 1, layout: 1, vision: 0 });
       expect(result).toBeCloseTo(0.6, 5);
+    });
+  });
+
+  describe('SSIM small image protection', () => {
+    it('returns 1 for identical tiny images', async () => {
+      const tiny = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } },
+      }).png().toBuffer();
+
+      const result = await computeSSIM(tiny, tiny);
+      expect(result.mssim).toBe(1);
+    });
+
+    it('returns 0 for completely different tiny images', async () => {
+      const black = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: { r: 0, g: 0, b: 0 } },
+      }).png().toBuffer();
+      const white = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: { r: 255, g: 255, b: 255 } },
+      }).png().toBuffer();
+
+      const result = await computeSSIM(black, white);
+      expect(result.mssim).toBe(0);
+    });
+
+    it('handles normal-sized images without issue', async () => {
+      const img = await sharp({
+        create: { width: 100, height: 100, channels: 3, background: { r: 128, g: 128, b: 128 } },
+      }).png().toBuffer();
+
+      const result = await computeSSIM(img, img);
+      expect(result.mssim).toBeCloseTo(1, 2);
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { resolve } from 'path';
 
 // We test the logic patterns used in the MCP server by extracting and testing
 // the key internal functions and patterns rather than spinning up a full MCP server.
@@ -141,6 +142,122 @@ describe('MCP Server port waiting logic', () => {
     const hasNodeId = (url: string) => url.includes('node-id=');
     expect(hasNodeId(urlWithNodeId)).toBe(true);
     expect(hasNodeId(urlWithoutNodeId)).toBe(false);
+  });
+});
+
+describe('MCP Server path validation', () => {
+  function validateFilePath(filePath: string): string {
+    const resolved = resolve(filePath);
+    const cwd = resolve(process.cwd());
+    if (!resolved.startsWith(cwd)) {
+      throw new Error(`Access denied: ${filePath} is outside the project directory (${cwd}). Only files within the project can be accessed.`);
+    }
+    return resolved;
+  }
+
+  it('allows files within project directory', () => {
+    const result = validateFilePath('./designs/login.png');
+    expect(result).toContain('designs/login.png');
+  });
+
+  it('allows nested subdirectory files', () => {
+    const result = validateFilePath('./src/assets/design.png');
+    expect(result).toContain('src/assets/design.png');
+  });
+
+  it('rejects path traversal attacks', () => {
+    expect(() => validateFilePath('../../etc/passwd')).toThrow('Access denied');
+  });
+
+  it('rejects absolute paths outside project', () => {
+    expect(() => validateFilePath('/etc/passwd')).toThrow('Access denied');
+  });
+
+  it('rejects sneaky traversal with nested ..', () => {
+    expect(() => validateFilePath('./designs/../../.env')).toThrow('Access denied');
+  });
+});
+
+describe('MCP Server page URL error messages', () => {
+  function pageUrlError(url: string, err: unknown): string {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('ERR_CONNECTION_REFUSED') || msg.includes('ECONNREFUSED')) {
+      return `Dev server not responding at ${url} — is it running? Try: npm run dev (or imugi_serve)`;
+    }
+    if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ENOTFOUND')) {
+      return `Cannot resolve hostname in ${url} — check the URL`;
+    }
+    if (msg.includes('Timeout')) {
+      return `Page load timed out at ${url} — the server may be slow or unresponsive`;
+    }
+    return `Failed to load ${url}: ${msg}`;
+  }
+
+  it('gives helpful message for connection refused', () => {
+    const result = pageUrlError('http://localhost:3000', new Error('net::ERR_CONNECTION_REFUSED'));
+    expect(result).toContain('is it running');
+    expect(result).toContain('imugi_serve');
+  });
+
+  it('gives helpful message for DNS resolution failure', () => {
+    const result = pageUrlError('http://badhost:3000', new Error('net::ERR_NAME_NOT_RESOLVED'));
+    expect(result).toContain('Cannot resolve hostname');
+  });
+
+  it('gives helpful message for timeout', () => {
+    const result = pageUrlError('http://localhost:3000', new Error('Timeout 15000ms exceeded'));
+    expect(result).toContain('timed out');
+  });
+
+  it('falls back to generic message for unknown errors', () => {
+    const result = pageUrlError('http://localhost:3000', new Error('Something weird'));
+    expect(result).toContain('Failed to load');
+    expect(result).toContain('Something weird');
+  });
+});
+
+describe('MCP Server iteration session isolation', () => {
+  function getSessionKey(designImagePath?: string, figmaUrl?: string): string {
+    if (figmaUrl) return `figma:${figmaUrl}`;
+    if (designImagePath) return `file:${resolve(designImagePath)}`;
+    return 'default';
+  }
+
+  it('creates unique key for each design file', () => {
+    const key1 = getSessionKey('./design-a.png');
+    const key2 = getSessionKey('./design-b.png');
+    expect(key1).not.toBe(key2);
+  });
+
+  it('creates unique key for figma URLs', () => {
+    const key = getSessionKey(undefined, 'https://www.figma.com/design/abc/test?node-id=1-2');
+    expect(key).toContain('figma:');
+  });
+
+  it('file keys are independent from figma keys', () => {
+    const fileKey = getSessionKey('./design.png');
+    const figmaKey = getSessionKey(undefined, 'https://figma.com/file/abc');
+    expect(fileKey).not.toBe(figmaKey);
+  });
+
+  it('same design path produces same key', () => {
+    const key1 = getSessionKey('./design.png');
+    const key2 = getSessionKey('./design.png');
+    expect(key1).toBe(key2);
+  });
+
+  it('sessions are isolated in a Map', () => {
+    const sessions = new Map<string, Array<{ score: number }>>();
+    const keyA = getSessionKey('./a.png');
+    const keyB = getSessionKey('./b.png');
+
+    sessions.set(keyA, [{ score: 0.5 }]);
+    sessions.set(keyB, [{ score: 0.9 }]);
+
+    expect(sessions.get(keyA)).toHaveLength(1);
+    expect(sessions.get(keyB)).toHaveLength(1);
+    expect(sessions.get(keyA)![0].score).toBe(0.5);
+    expect(sessions.get(keyB)![0].score).toBe(0.9);
   });
 });
 
