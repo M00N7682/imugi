@@ -33,6 +33,7 @@ export default defineConfig({
 						{ label: 'Figma Integration', slug: 'guides/figma' },
 						{ label: 'CI / GitHub Action', slug: 'guides/ci' },
 						{ label: 'Configuration', slug: 'guides/configuration' },
+						{ label: 'imugi vs Alternatives', slug: 'guides/alternatives' },
 					],
 				},
 				{

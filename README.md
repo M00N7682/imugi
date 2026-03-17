@@ -286,6 +286,25 @@ src/
 
 ---
 
+## Alternatives & Comparison
+
+How does imugi compare to other design-to-code tools?
+
+| Feature | imugi | Anima | Locofy | Screenshot-to-Code | Vercel v0 |
+|---------|-------|-------|--------|---------------------|-----------|
+| **Visual verification** | SSIM + pixel diff + AI vision | None | None | None | None |
+| **Automated iteration** | Boulder Loop (capture → compare → patch → repeat) | Single pass | Single pass | Single pass | Single pass |
+| **MCP server** | Native MCP for Claude Code / Cursor | No | No | No | No |
+| **Open source** | MIT | No | No | Yes | No |
+| **Additional API key** | Not needed in MCP mode | Required | Required | Required | Required |
+| **Figma integration** | Direct URL export | Plugin | Plugin | No | No |
+| **Framework detection** | Auto (React, Vue, Svelte, Next.js) | Manual | Manual | Limited | Auto |
+| **Pricing** | Free | Paid | Paid | Free (self-host) | Freemium |
+
+imugi is the only tool that measures design-to-code fidelity with an objective score and automatically iterates until the code matches the design. Other tools generate code in a single pass with no verification step.
+
+---
+
 ## Star History
 
 If imugi helped you skip the manual CSS grind, consider giving it a star.
