@@ -217,21 +217,33 @@ export async function startMcpServer(): Promise<void> {
         const resized = await resizeToMatch(screenshotBuffer, designMeta.width ?? vw, designMeta.height ?? vh);
         const comparison = await compareImages(designBuffer, resized);
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify({
-                ssim: comparison.ssim.mssim,
-                pixelDiffPercentage: comparison.pixelDiff.diffPercentage,
-                compositeScore: comparison.compositeScore,
-                diffRegions: comparison.diffRegions.length,
-                performanceMs: comparison.ssim.performanceMs,
-              }, null, 2),
-            },
-            { type: 'image' as const, data: comparison.heatmapBuffer.toString('base64'), mimeType: 'image/png' as const },
-          ],
-        };
+        const compareContent: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: 'image/png' }> = [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              ssim: comparison.ssim.mssim,
+              pixelDiffPercentage: comparison.pixelDiff.diffPercentage,
+              compositeScore: comparison.compositeScore,
+              diffRegions: comparison.diffRegions.length,
+              performanceMs: comparison.ssim.performanceMs,
+            }, null, 2),
+          },
+          { type: 'image' as const, data: comparison.heatmapBuffer.toString('base64'), mimeType: 'image/png' as const },
+        ];
+
+        // Include crop pairs for top diff regions so the AI editor can visually compare specific areas
+        const topPairs = comparison.cropPairs.slice(0, 3);
+        for (let i = 0; i < topPairs.length; i++) {
+          const pair = topPairs[i];
+          const region = pair.region;
+          compareContent.push(
+            { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs screenshot ---` },
+            { type: 'image' as const, data: pair.design.toString('base64'), mimeType: 'image/png' as const },
+            { type: 'image' as const, data: pair.screenshot.toString('base64'), mimeType: 'image/png' as const },
+          );
+        }
+
+        return { content: compareContent };
       } catch (err) {
         return errorResult(err);
       }
@@ -416,12 +428,26 @@ The tool tracks iteration history per design and will tell you when to stop (thr
           { type: 'text' as const, text: resultJson },
         ];
 
-        // Include heatmap image for visual reference
+        // Include heatmap + crop pairs for visual reference
         if (status === 'ACTION_REQUIRED') {
           content.push(
             { type: 'image' as const, data: comparison.heatmapBuffer.toString('base64'), mimeType: 'image/png' as const },
             { type: 'text' as const, text: `--- Diff Analysis ---\n${reportText}\n\n--- What to fix ---\n${strategyHint}` },
           );
+
+          // Include side-by-side crop pairs for the top diff regions
+          // Each pair shows: [design crop] vs [screenshot crop] for one diff region
+          // This lets the AI editor visually compare specific areas and determine exact fixes
+          const topRegions = comparison.cropPairs.slice(0, 3);
+          for (let i = 0; i < topRegions.length; i++) {
+            const pair = topRegions[i];
+            const region = pair.region;
+            content.push(
+              { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs your code ---` },
+              { type: 'image' as const, data: pair.design.toString('base64'), mimeType: 'image/png' as const },
+              { type: 'image' as const, data: pair.screenshot.toString('base64'), mimeType: 'image/png' as const },
+            );
+          }
         }
 
         return { content };
