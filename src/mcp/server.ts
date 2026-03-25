@@ -314,8 +314,13 @@ The tool tracks iteration history per design and will tell you when to stop (thr
           return { content: [{ type: 'text' as const, text: 'Error: Provide either designImagePath or figmaUrl' }] };
         }
 
-        // ── Capture screenshot ──
+        // ── Capture screenshot + extract DOM element styles ──
         let screenshotBuffer: Buffer;
+        let domElements: Array<{
+          tag: string; text: string;
+          x: number; y: number; width: number; height: number;
+          styles: Record<string, string>;
+        }> = [];
         const browser = await chromium.launch({ headless: true });
         try {
           const ctx = await browser.newContext({ viewport: { width: vw, height: vh } });
@@ -327,6 +332,43 @@ The tool tracks iteration history per design and will tell you when to stop (thr
           }
           await page.waitForTimeout(500);
           screenshotBuffer = Buffer.from(await page.screenshot({ fullPage: true, type: 'png' }));
+
+          // Extract visible elements with computed styles
+          domElements = await page.evaluate(() => {
+            const props = [
+              'fontSize', 'fontWeight', 'fontFamily', 'color', 'backgroundColor',
+              'padding', 'margin', 'borderRadius', 'gap', 'width', 'height',
+              'display', 'flexDirection', 'justifyContent', 'alignItems',
+              'lineHeight', 'letterSpacing', 'textAlign', 'border',
+            ];
+            const results: Array<{
+              tag: string; text: string;
+              x: number; y: number; width: number; height: number;
+              styles: Record<string, string>;
+            }> = [];
+            const els = document.querySelectorAll('body *');
+            for (const el of els) {
+              const rect = el.getBoundingClientRect();
+              if (rect.width === 0 || rect.height === 0) continue;
+              if (rect.bottom < 0 || rect.top > window.innerHeight * 2) continue;
+              const cs = getComputedStyle(el);
+              const styles: Record<string, string> = {};
+              for (const p of props) {
+                const v = cs.getPropertyValue(p.replace(/([A-Z])/g, '-$1').toLowerCase());
+                if (v && v !== 'normal' && v !== 'none' && v !== '0px' && v !== 'auto' && v !== 'rgba(0, 0, 0, 0)') {
+                  styles[p] = v;
+                }
+              }
+              results.push({
+                tag: el.tagName.toLowerCase(),
+                text: (el.textContent ?? '').trim().slice(0, 60),
+                x: Math.round(rect.x), y: Math.round(rect.y),
+                width: Math.round(rect.width), height: Math.round(rect.height),
+                styles,
+              });
+            }
+            return results;
+          });
         } finally {
           await browser.close();
         }
@@ -435,15 +477,28 @@ The tool tracks iteration history per design and will tell you when to stop (thr
             { type: 'text' as const, text: `--- Diff Analysis ---\n${reportText}\n\n--- What to fix ---\n${strategyHint}` },
           );
 
-          // Include side-by-side crop pairs for the top diff regions
-          // Each pair shows: [design crop] vs [screenshot crop] for one diff region
-          // This lets the AI editor visually compare specific areas and determine exact fixes
+          // Include side-by-side crop pairs + DOM element styles for top diff regions
           const topRegions = comparison.cropPairs.slice(0, 3);
           for (let i = 0; i < topRegions.length; i++) {
             const pair = topRegions[i];
             const region = pair.region;
+
+            // Find DOM elements that overlap with this diff region
+            const overlapping = domElements.filter(el =>
+              el.x < region.x + region.width &&
+              el.x + el.width > region.x &&
+              el.y < region.y + region.height &&
+              el.y + el.height > region.y
+            ).slice(0, 8);
+
+            const elementsInfo = overlapping.length > 0
+              ? '\nElements in this region:\n' + overlapping.map(el =>
+                `  <${el.tag}>${el.text ? ` "${el.text}"` : ''} — ${Object.entries(el.styles).map(([k, v]) => `${k}: ${v}`).join(', ')}`
+              ).join('\n')
+              : '';
+
             content.push(
-              { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs your code ---` },
+              { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs your code ---${elementsInfo}` },
               { type: 'image' as const, data: pair.design.toString('base64'), mimeType: 'image/png' as const },
               { type: 'image' as const, data: pair.screenshot.toString('base64'), mimeType: 'image/png' as const },
             );
