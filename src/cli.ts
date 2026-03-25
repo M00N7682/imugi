@@ -164,7 +164,7 @@ program
 program
   .command('compare <design-image>')
   .description('Compare a design image against the current running page')
-  .option('--screenshot <path>', 'Use an existing screenshot instead of capturing')
+  .option('--screenshot <path-or-url>', 'Path to screenshot file or URL to capture (e.g. http://localhost:3000)')
   .option('--report [dir]', 'Generate an HTML report (default: .imugi/reports)')
   .action(async (designImagePath: string, cmdOpts: { screenshot?: string; report?: string | true }) => {
     const opts = program.opts();
@@ -181,7 +181,30 @@ program
 
     let screenshotBuffer: Buffer;
 
-    if (cmdOpts.screenshot) {
+    if (cmdOpts.screenshot && /^https?:\/\//.test(cmdOpts.screenshot)) {
+      // URL: capture screenshot from live page
+      const browser = await (await import('playwright')).chromium.launch({ headless: true });
+      try {
+        const ctx = await browser.newContext({ viewport: { width: designWidth, height: designHeight } });
+        const page = await ctx.newPage();
+        try {
+          await page.goto(cmdOpts.screenshot, { waitUntil: 'networkidle', timeout: 15000 });
+        } catch (navErr) {
+          const msg = navErr instanceof Error ? navErr.message : String(navErr);
+          if (msg.includes('ERR_CONNECTION_REFUSED') || msg.includes('ECONNREFUSED')) {
+            throw new Error(`Dev server not responding at ${cmdOpts.screenshot} — is it running? Try: npm run dev`);
+          }
+          if (msg.includes('Timeout')) {
+            throw new Error(`Page load timed out at ${cmdOpts.screenshot} — the server may be slow or unresponsive`);
+          }
+          throw navErr;
+        }
+        await page.waitForTimeout(500);
+        screenshotBuffer = Buffer.from(await page.screenshot({ fullPage: true, type: 'png' }));
+      } finally {
+        await browser.close();
+      }
+    } else if (cmdOpts.screenshot) {
       screenshotBuffer = await readFile(resolve(cmdOpts.screenshot));
     } else {
       const context = await detectProjectContext(process.cwd());
