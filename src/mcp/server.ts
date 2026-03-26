@@ -11,7 +11,7 @@ import { compareImages } from '../core/comparator.js';
 import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';
-import { parseFigmaUrl, exportFigmaImage, resolveToken } from '../core/figma.js';
+import { parseFigmaUrl, exportFigmaImage, resolveToken, fetchFigmaSpecs, diffFigmaVsDom } from '../core/figma.js';
 
 declare const __IMUGI_VERSION__: string;
 
@@ -437,6 +437,28 @@ The tool tracks iteration history per design and will tell you when to stop (thr
           ? 'Score is low — consider rewriting the component from scratch based on the design.'
           : 'Score is close — make targeted CSS/layout fixes for the specific regions listed below.';
 
+        // ── Figma spec diff (if figmaUrl provided and FIGMA_TOKEN available) ──
+        let figmaDiffText = '';
+        if (figmaUrl && status === 'ACTION_REQUIRED') {
+          try {
+            const parsed = parseFigmaUrl(figmaUrl);
+            if (parsed.nodeId) {
+              const token = resolveToken();
+              const figmaSpecs = await fetchFigmaSpecs({ fileKey: parsed.fileKey, nodeId: parsed.nodeId, token });
+              const diffs = diffFigmaVsDom(figmaSpecs, domElements);
+              if (diffs.length > 0) {
+                figmaDiffText = '\n\n--- Figma vs Code: Exact CSS Differences ---\n' +
+                  diffs.map(d =>
+                    `${d.figmaElement} ↔ ${d.domElement}\n` +
+                    d.differences.map(dd => `  ${dd.property}: design=${dd.figma} → your code=${dd.dom}`).join('\n')
+                  ).join('\n\n');
+              }
+            }
+          } catch {
+            // Figma spec extraction is optional — continue without it
+          }
+        }
+
         // ── Save heatmap to .imugi/ directory with cleanup ──
         const heatmapDir = await ensureHeatmapDir();
         await cleanupOldHeatmaps(heatmapDir, 5);
@@ -474,7 +496,7 @@ The tool tracks iteration history per design and will tell you when to stop (thr
         if (status === 'ACTION_REQUIRED') {
           content.push(
             { type: 'image' as const, data: comparison.heatmapBuffer.toString('base64'), mimeType: 'image/png' as const },
-            { type: 'text' as const, text: `--- Diff Analysis ---\n${reportText}\n\n--- What to fix ---\n${strategyHint}` },
+            { type: 'text' as const, text: `--- Diff Analysis ---\n${reportText}\n\n--- What to fix ---\n${strategyHint}${figmaDiffText}` },
           );
 
           // Include side-by-side crop pairs + DOM element styles for top diff regions
