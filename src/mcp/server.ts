@@ -12,6 +12,7 @@ import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';
 import { parseFigmaUrl, exportFigmaImage, resolveToken, fetchFigmaSpecs, diffFigmaVsDom } from '../core/figma.js';
+import { extractDesignRegionStyles, diffDesignVsDom } from '../core/design-extractor.js';
 
 declare const __IMUGI_VERSION__: string;
 
@@ -514,13 +515,31 @@ The tool tracks iteration history per design and will tell you when to stop (thr
             ).slice(0, 8);
 
             const elementsInfo = overlapping.length > 0
-              ? '\nElements in this region:\n' + overlapping.map(el =>
+              ? '\nYour code\'s elements in this region:\n' + overlapping.map(el =>
                 `  <${el.tag}>${el.text ? ` "${el.text}"` : ''} — ${Object.entries(el.styles).map(([k, v]) => `${k}: ${v}`).join(', ')}`
               ).join('\n')
               : '';
 
+            // Extract visual properties from the design image for this region (no API needed)
+            let designAnalysis = '';
+            try {
+              const designStyle = await extractDesignRegionStyles(designBuffer, region);
+              const visualDiffs = diffDesignVsDom(designStyle, overlapping);
+              const designProps = [
+                designStyle.backgroundColor !== '#000000' ? `bg≈${designStyle.backgroundColor}` : null,
+                designStyle.textColor ? `text≈${designStyle.textColor}` : null,
+                designStyle.estimatedFontSize ? `fontSize≈${designStyle.estimatedFontSize}px` : null,
+              ].filter(Boolean).join(', ');
+              designAnalysis = designProps ? `\nDesign image analysis: ${designProps}` : '';
+              if (visualDiffs.length > 0) {
+                designAnalysis += '\nDesign vs Code differences:\n' + visualDiffs.map(d => `  ${d}`).join('\n');
+              }
+            } catch {
+              // Design extraction is best-effort
+            }
+
             content.push(
-              { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs your code ---${elementsInfo}` },
+              { type: 'text' as const, text: `--- Region ${i + 1}: (${region.x}, ${region.y}) ${region.width}x${region.height} — design vs your code ---${designAnalysis}${elementsInfo}` },
               { type: 'image' as const, data: pair.design.toString('base64'), mimeType: 'image/png' as const },
               { type: 'image' as const, data: pair.screenshot.toString('base64'), mimeType: 'image/png' as const },
             );
