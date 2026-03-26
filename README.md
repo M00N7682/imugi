@@ -8,7 +8,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/M00N7682/imugi?style=flat-square&color=ffcb47&labelColor=black)](https://github.com/M00N7682/imugi/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?labelColor=black&style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?labelColor=black&style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Tests](https://img.shields.io/badge/tests-282%20passed-10B981?labelColor=black&style=flat-square)](https://github.com/M00N7682/imugi)
+[![Tests](https://img.shields.io/badge/tests-308%20passed-10B981?labelColor=black&style=flat-square)](https://github.com/M00N7682/imugi)
 
 **Give AI eyes to see your frontend.**
 
@@ -128,7 +128,10 @@ See the full example at [`examples/hero-section/`](examples/hero-section/).
 
 ## Features
 
-- **Visual Comparison Engine** — SSIM + pixel diff + Claude Vision scoring with red heatmap showing exact diff locations
+- **Visual Comparison Engine** — SSIM + pixel diff scoring with red heatmap showing exact diff locations
+- **Region Crop Pairs** — Side-by-side crop images of each diff region (design vs your code) so AI can visually compare specific areas
+- **DOM Style Extraction** — Extracts computed CSS from your running page (font-size, color, padding, etc.) and maps them to diff regions — AI knows exactly what CSS values to change
+- **Figma Spec Diff** — When `FIGMA_TOKEN` is set, fetches exact design specs from Figma API and diffs them against your DOM: `fontSize: design=42px → your code=48px`. No guessing from pixels
 - **Boulder Loop** — Automated iterative improvement: capture → compare → patch → repeat until 95%+ match
 - **MCP Server** — Drop-in for Claude Code / Cursor / any MCP-compatible AI tool. No API key needed
 - **Figma Integration** — Export Figma frames directly via URL (`imugi figma <URL>`), no manual export
@@ -173,7 +176,11 @@ imugi generate ./design.png --output src/app/page.tsx
 ### Compare Only
 
 ```bash
+# Compare against a local screenshot file
 imugi compare ./design.png --screenshot ./current.png
+
+# Compare against a running dev server URL
+imugi compare ./design.png --screenshot http://localhost:3000
 ```
 
 ### Figma Export
@@ -197,9 +204,9 @@ Requires a Figma personal access token via `FIGMA_TOKEN` environment variable or
 
 | Tool | Description |
 |------|-------------|
-| `imugi_iterate` | **The main loop tool.** Captures screenshot → compares against design → analyzes diffs → returns score + heatmap + fix suggestions + status (`ACTION_REQUIRED` or `DONE`). Call repeatedly after each code fix until status is `DONE`. |
+| `imugi_iterate` | **The main loop tool.** Captures screenshot → compares against design → analyzes diffs → returns score + heatmap + region crop pairs + DOM computed styles + Figma spec diff (if `FIGMA_TOKEN` set). Returns `ACTION_REQUIRED` or `DONE`. Call repeatedly after each code fix. |
 | `imugi_capture` | Screenshot a URL via headless Chromium |
-| `imugi_compare` | Compare design vs screenshot — returns SSIM score, pixel diff, and heatmap |
+| `imugi_compare` | Compare design vs screenshot — returns SSIM score, pixel diff, heatmap, and region crop pairs |
 | `imugi_analyze` | Analyze visual differences with actionable fix suggestions |
 | `imugi_figma_export` | Export a Figma frame as PNG via URL or file key + node ID |
 | `imugi_detect` | Detect project tech stack (framework, CSS, language) |
@@ -215,7 +222,15 @@ The composite score combines multiple signals:
 |--------|-----------------|
 | **SSIM** | Structural similarity — luminance, contrast, structure |
 | **Pixel diff** | Raw pixel-level comparison via pixelmatch |
-| **Claude Vision** | AI-powered visual assessment (activated for scores < 0.98) |
+| **Claude Vision** | AI-powered visual assessment (CLI agent mode, activated for scores < 0.98) |
+
+Beyond the score, `imugi_iterate` returns three layers of actionable feedback:
+
+| Layer | What it provides | Requires |
+|-------|-----------------|----------|
+| **Heatmap + crop pairs** | Red overlay showing diff locations + zoomed-in design vs code crops for each region | Nothing (free) |
+| **DOM computed styles** | Actual CSS values (font-size, color, padding...) of elements in each diff region | Nothing (free) |
+| **Figma spec diff** | Exact design-vs-code CSS comparison: `fontSize: design=42px → code=48px` | `FIGMA_TOKEN` |
 
 Strategy selection based on score:
 
@@ -252,7 +267,7 @@ Create `imugi.config.json` in your project root:
 | `IMUGI_THRESHOLD` | Similarity threshold (0.8–0.99) |
 | `IMUGI_MAX_ITERATIONS` | Max iterations (1–50) |
 | `IMUGI_PORT` | Dev server port |
-| `FIGMA_TOKEN` | Figma personal access token (for `imugi figma` and `imugi_figma_export`) |
+| `FIGMA_TOKEN` | Figma personal access token — enables Figma export, and **exact CSS spec diff** in `imugi_iterate` (design values vs your code) |
 
 ---
 
@@ -273,7 +288,7 @@ src/
 │   ├── renderer.ts     # Playwright screenshot engine
 │   ├── patcher.ts      # Code generation + patching
 │   ├── context.ts      # Project tech stack detection
-│   └── figma.ts        # Figma URL parsing + API export
+│   └── figma.ts        # Figma URL parsing + API export + design spec extraction
 ├── llm/
 │   ├── client.ts       # Anthropic SDK wrapper
 │   └── prompts.ts      # Prompt engineering
@@ -292,7 +307,8 @@ How does imugi compare to other design-to-code tools?
 
 | Feature | imugi | Anima | Locofy | Screenshot-to-Code | Vercel v0 |
 |---------|-------|-------|--------|---------------------|-----------|
-| **Visual verification** | SSIM + pixel diff + AI vision | None | None | None | None |
+| **Visual verification** | SSIM + pixel diff + heatmap + crop pairs + DOM styles | None | None | None | None |
+| **Design spec diff** | Figma API → exact CSS comparison (design=42px vs code=48px) | None | None | None | None |
 | **Automated iteration** | Boulder Loop (capture → compare → patch → repeat) | Single pass | Single pass | Single pass | Single pass |
 | **MCP server** | Native MCP for Claude Code / Cursor | No | No | No | No |
 | **Open source** | MIT | No | No | Yes | No |
