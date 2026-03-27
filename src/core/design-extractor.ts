@@ -151,9 +151,11 @@ async function sampleTextColor(
   const bgG = parseInt(bgColor.slice(3, 5), 16);
   const bgB = parseInt(bgColor.slice(5, 7), 16);
 
-  // Find pixels that differ from background (likely text/content)
+  // Find pixels that differ significantly from background (likely text/content)
+  // Use adaptive threshold: higher for dark backgrounds to skip anti-aliasing noise
   const colorCounts = new Map<string, { count: number; r: number; g: number; b: number }>();
-  const threshold = 30; // color distance threshold
+  const bgLum = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
+  const threshold = bgLum < 50 ? 80 : 30;
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -184,8 +186,11 @@ async function sampleTextColor(
 }
 
 /**
- * Estimate font size by measuring the height of text strokes in a region.
- * Uses horizontal scan lines to find text row boundaries.
+ * Estimate font size by measuring the height of individual text lines.
+ *
+ * Algorithm: convert to high-contrast binary (text vs background), scan rows
+ * for content density, group into lines, take the MEDIAN line height.
+ * Handles both light-on-dark and dark-on-light designs.
  */
 async function estimateFontSize(
   imageBuffer: Buffer,
@@ -201,8 +206,9 @@ async function estimateFontSize(
   const width = Math.min(region.width, imgW - left);
   const height = Math.min(region.height, imgH - top);
 
-  if (width <= 0 || height <= 0) return null;
+  if (width <= 0 || height <= 10) return null;
 
+  // Extract region at original resolution (no resize — precision matters)
   const raw = await sharp(imageBuffer)
     .extract({ left, top, width, height })
     .raw()
@@ -213,41 +219,76 @@ async function estimateFontSize(
   const bgG = parseInt(bgColor.slice(3, 5), 16);
   const bgB = parseInt(bgColor.slice(5, 7), 16);
 
-  // Count non-background pixels per row
+  // Adaptive threshold: dark backgrounds need higher threshold because
+  // anti-aliased light-on-dark text creates many intermediate-colored pixels
+  const bgLuminance = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
+  const distThreshold = bgLuminance < 50 ? 80 : 30;
+
+  // Count content pixels per row — only in the middle 80% of width
+  // to avoid border/padding artifacts
+  const marginX = Math.floor(width * 0.1);
+  const scanWidth = width - 2 * marginX;
   const rowCounts: number[] = [];
+
   for (let y = 0; y < height; y++) {
     let count = 0;
-    for (let x = 0; x < width; x++) {
+    for (let x = marginX; x < marginX + scanWidth; x++) {
       const idx = (y * width + x) * 4;
       const dist = Math.abs(raw[idx] - bgR) + Math.abs(raw[idx + 1] - bgG) + Math.abs(raw[idx + 2] - bgB);
-      if (dist > 30) count++;
+      if (dist > distThreshold) count++;
     }
     rowCounts.push(count);
   }
 
-  // Find text line boundaries (contiguous rows with content)
-  const contentThreshold = width * 0.02; // at least 2% of width has content
+  // Require at least 1% of scan width to count as a content row.
+  // Lower threshold catches thin glyphs and wide-spaced text layouts.
+  const contentThreshold = Math.max(scanWidth * 0.01, 3);
+
+  // Find text lines: groups of consecutive content rows.
+  // Allow gaps of up to 4px within a line to handle:
+  // - Anti-aliased edges on dark backgrounds
+  // - Thin parts of glyphs (e.g., crossbar of 'e', dot of 'i')
+  // - Sub-pixel rendering artifacts
+  const maxGap = 4;
   const lines: Array<{ start: number; end: number }> = [];
   let lineStart: number | null = null;
+  let gapCount = 0;
 
   for (let y = 0; y < rowCounts.length; y++) {
     if (rowCounts[y] > contentThreshold) {
       if (lineStart === null) lineStart = y;
+      gapCount = 0;
     } else {
       if (lineStart !== null) {
-        lines.push({ start: lineStart, end: y });
-        lineStart = null;
+        gapCount++;
+        if (gapCount > maxGap) {
+          lines.push({ start: lineStart, end: y - gapCount });
+          lineStart = null;
+          gapCount = 0;
+        }
       }
     }
   }
   if (lineStart !== null) lines.push({ start: lineStart, end: height });
 
-  if (lines.length === 0) return null;
+  // Filter out tiny lines (noise) and huge lines (merged blocks)
+  const validLines = lines.filter(l => {
+    const h = l.end - l.start;
+    return h >= 6 && h <= 120; // reasonable text line height: 6px-120px
+  });
 
-  // The tallest text line is our best estimate for font size
-  // (font-size ≈ line height × 0.75, but line height ≈ text block height)
-  const maxLineHeight = Math.max(...lines.map(l => l.end - l.start));
-  return Math.round(maxLineHeight * 0.85); // approximate font-size from visual height
+  if (validLines.length === 0) return null;
+
+  // Use median line height — more robust than max (which picks up headers
+  // when there's mixed font sizes in the region)
+  const heights = validLines.map(l => l.end - l.start).sort((a, b) => a - b);
+  const medianHeight = heights[Math.floor(heights.length / 2)];
+
+  // font-size ≈ visual line height × 0.7
+  // Text rendering: the visible height of a line includes ascenders (b, d, h)
+  // and descenders (g, p, y). The font-size (em square) is roughly 70% of that.
+  // For multi-line text, each "line" from our scan = one line of text.
+  return Math.round(medianHeight * 0.7);
 }
 
 /**

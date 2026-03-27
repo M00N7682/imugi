@@ -230,7 +230,81 @@ export async function findDiffRegions(
     });
   }
 
-  return regions.sort((a, b) => b.diffIntensity - a.diffIntensity);
+  const sorted = regions.sort((a, b) => b.diffIntensity - a.diffIntensity);
+
+  // Post-process: split oversized regions into horizontal bands.
+  // When the whole page merges into one giant region (common with dark designs
+  // where anti-aliasing creates thin diff lines everywhere), split it into
+  // ~200px tall bands so design-extractor can analyze each section individually.
+  const maxRegionHeight = 300;
+  const splitRegions: DiffRegion[] = [];
+
+  for (const region of sorted) {
+    if (region.height <= maxRegionHeight) {
+      splitRegions.push(region);
+      continue;
+    }
+
+    // Scan the diff image to find row-level diff density within this region
+    const regionRows: number[] = [];
+    for (let ry = region.y; ry < region.y + region.height && ry < height; ry++) {
+      let rowDiff = 0;
+      for (let rx = region.x; rx < region.x + region.width && rx < width; rx++) {
+        const idx = (ry * width + rx) * 4;
+        if (rawData[idx] > 50) rowDiff++;
+      }
+      regionRows.push(rowDiff);
+    }
+
+    // Find natural split points: rows with minimal diff activity
+    const bandMinHeight = 80;
+    let bandStart = 0;
+
+    for (let i = 0; i < regionRows.length; i++) {
+      const rowActivity = regionRows[i];
+      const bandHeight = i - bandStart;
+
+      // Split when we find a quiet row and the band is big enough
+      const isQuietRow = rowActivity < region.width * 0.01;
+      const bandIsBigEnough = bandHeight >= bandMinHeight;
+      const bandIsTooTall = bandHeight >= maxRegionHeight;
+
+      if ((isQuietRow && bandIsBigEnough) || bandIsTooTall) {
+        if (bandHeight > 0) {
+          const bandPixels = regionRows.slice(bandStart, i).reduce((a, b) => a + b, 0);
+          if (bandPixels >= minRegionSize) {
+            splitRegions.push({
+              x: region.x,
+              y: region.y + bandStart,
+              width: region.width,
+              height: bandHeight,
+              diffIntensity: bandPixels / (region.width * bandHeight),
+              pixelCount: bandPixels,
+            });
+          }
+        }
+        bandStart = i + 1;
+      }
+    }
+
+    // Last band
+    const remaining = regionRows.length - bandStart;
+    if (remaining > 0) {
+      const bandPixels = regionRows.slice(bandStart).reduce((a, b) => a + b, 0);
+      if (bandPixels >= minRegionSize) {
+        splitRegions.push({
+          x: region.x,
+          y: region.y + bandStart,
+          width: region.width,
+          height: remaining,
+          diffIntensity: bandPixels / (region.width * remaining),
+          pixelCount: bandPixels,
+        });
+      }
+    }
+  }
+
+  return splitRegions.sort((a, b) => b.diffIntensity - a.diffIntensity);
 }
 
 export async function cropRegion(
