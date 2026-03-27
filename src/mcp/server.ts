@@ -12,7 +12,7 @@ import { analyzeDifferences, generateReportText } from '../core/analyzer.js';
 import { detectProjectContext } from '../core/context.js';
 import { resizeToMatch } from '../core/renderer.js';
 import { parseFigmaUrl, exportFigmaImage, resolveToken, fetchFigmaSpecs, diffFigmaVsDom } from '../core/figma.js';
-import { extractDesignRegionStyles, diffDesignVsDom } from '../core/design-extractor.js';
+import { extractDesignRegionStyles, diffDesignVsDom, compareElementLayout } from '../core/design-extractor.js';
 
 declare const __IMUGI_VERSION__: string;
 
@@ -520,7 +520,7 @@ The tool tracks iteration history per design and will tell you when to stop (thr
               ).join('\n')
               : '';
 
-            // Extract visual properties from the design image for this region (no API needed)
+            // Extract visual properties + layout comparison from design image (no API needed)
             let designAnalysis = '';
             try {
               const designStyle = await extractDesignRegionStyles(designBuffer, region);
@@ -532,7 +532,22 @@ The tool tracks iteration history per design and will tell you when to stop (thr
               ].filter(Boolean).join(', ');
               designAnalysis = designProps ? `\nDesign image analysis: ${designProps}` : '';
               if (visualDiffs.length > 0) {
-                designAnalysis += '\nDesign vs Code differences:\n' + visualDiffs.map(d => `  ${d}`).join('\n');
+                designAnalysis += '\nColor differences:\n' + visualDiffs.map(d => `  ${d}`).join('\n');
+              }
+
+              // Layout comparison: position, size, border-radius for each element
+              const layoutDiffs: string[] = [];
+              const bg = designStyle.backgroundColor;
+              for (const el of overlapping.slice(0, 4)) {
+                try {
+                  const layout = await compareElementLayout(designBuffer, el, bg);
+                  layoutDiffs.push(...layout.diffs);
+                } catch {
+                  // skip
+                }
+              }
+              if (layoutDiffs.length > 0) {
+                designAnalysis += '\nLayout differences:\n' + layoutDiffs.map(d => `  ${d}`).join('\n');
               }
             } catch {
               // Design extraction is best-effort

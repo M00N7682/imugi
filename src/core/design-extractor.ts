@@ -292,6 +292,121 @@ async function estimateFontSize(
 }
 
 /**
+ * Find the visual content bounds within a design region.
+ * Scans for non-background pixels to find the actual element boundaries.
+ * Returns the bounding box of the visual content relative to the image origin.
+ */
+async function findVisualBounds(
+  imageBuffer: Buffer,
+  searchArea: { x: number; y: number; width: number; height: number },
+  bgColor: string,
+): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  const meta = await sharp(imageBuffer).metadata();
+  const imgW = meta.width ?? 0;
+  const imgH = meta.height ?? 0;
+
+  // Expand search area by 30px each side to find nearby content
+  const pad = 30;
+  const left = Math.max(0, searchArea.x - pad);
+  const top = Math.max(0, searchArea.y - pad);
+  const right = Math.min(imgW, searchArea.x + searchArea.width + pad);
+  const bottom = Math.min(imgH, searchArea.y + searchArea.height + pad);
+  const width = right - left;
+  const height = bottom - top;
+
+  if (width <= 0 || height <= 0) return null;
+
+  const raw = await sharp(imageBuffer)
+    .extract({ left, top, width, height })
+    .raw()
+    .ensureAlpha()
+    .toBuffer();
+
+  const bgR = parseInt(bgColor.slice(1, 3), 16);
+  const bgG = parseInt(bgColor.slice(3, 5), 16);
+  const bgB = parseInt(bgColor.slice(5, 7), 16);
+  const bgLum = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
+  const dist = bgLum < 50 ? 60 : 30;
+
+  let minX = width, maxX = 0, minY = height, maxY = 0;
+  let found = false;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const d = Math.abs(raw[idx] - bgR) + Math.abs(raw[idx + 1] - bgG) + Math.abs(raw[idx + 2] - bgB);
+      if (d > dist) {
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+        found = true;
+      }
+    }
+  }
+
+  if (!found) return null;
+
+  return {
+    x: left + minX,
+    y: top + minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
+/**
+ * Detect if a region in the design has rounded corners by checking
+ * whether corner pixels are background while edge-center pixels are not.
+ */
+async function detectBorderRadius(
+  imageBuffer: Buffer,
+  bounds: { x: number; y: number; width: number; height: number },
+  bgColor: string,
+): Promise<number> {
+  const meta = await sharp(imageBuffer).metadata();
+  const imgW = meta.width ?? 0;
+  const imgH = meta.height ?? 0;
+
+  const left = Math.max(0, bounds.x);
+  const top = Math.max(0, bounds.y);
+  const w = Math.min(bounds.width, imgW - left);
+  const h = Math.min(bounds.height, imgH - top);
+
+  if (w < 10 || h < 10) return 0;
+
+  const raw = await sharp(imageBuffer)
+    .extract({ left, top, width: w, height: h })
+    .raw()
+    .ensureAlpha()
+    .toBuffer();
+
+  const bgR = parseInt(bgColor.slice(1, 3), 16);
+  const bgG = parseInt(bgColor.slice(3, 5), 16);
+  const bgB = parseInt(bgColor.slice(5, 7), 16);
+  const bgLum = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
+  const threshold = bgLum < 50 ? 60 : 30;
+
+  function isBg(x: number, y: number): boolean {
+    if (x < 0 || x >= w || y < 0 || y >= h) return true;
+    const idx = (y * w + x) * 4;
+    return Math.abs(raw[idx] - bgR) + Math.abs(raw[idx + 1] - bgG) + Math.abs(raw[idx + 2] - bgB) <= threshold;
+  }
+
+  // Check top-left corner: walk diagonally until we hit non-bg
+  let radius = 0;
+  for (let d = 0; d < Math.min(w, h, 30); d++) {
+    if (isBg(d, d)) {
+      radius = d + 1;
+    } else {
+      break;
+    }
+  }
+
+  return radius;
+}
+
+/**
  * Extract visual style properties from a design image for a specific region.
  */
 export async function extractDesignRegionStyles(
@@ -307,8 +422,69 @@ export async function extractDesignRegionStyles(
     backgroundColor: bg,
     textColor,
     estimatedFontSize: fontSize,
-    estimatedPadding: null, // TODO: edge detection for padding estimation
+    estimatedPadding: null,
   };
+}
+
+/**
+ * Compare a DOM element's position/size against the visual content
+ * in the design image at the same location. Returns position and
+ * dimension diffs in pixels.
+ */
+export interface LayoutDiff {
+  element: string;
+  domBounds: { x: number; y: number; width: number; height: number };
+  designBounds: { x: number; y: number; width: number; height: number } | null;
+  diffs: string[];
+}
+
+export async function compareElementLayout(
+  designBuffer: Buffer,
+  domElement: {
+    tag: string; text: string;
+    x: number; y: number; width: number; height: number;
+    styles: Record<string, string>;
+  },
+  bgColor?: string,
+): Promise<LayoutDiff> {
+  const bg = bgColor ?? await sampleBackgroundColor(designBuffer, {
+    x: domElement.x, y: domElement.y, width: domElement.width, height: domElement.height,
+  });
+
+  const designBounds = await findVisualBounds(designBuffer, domElement, bg);
+
+  const diffs: string[] = [];
+  const label = `<${domElement.tag}>${domElement.text ? ` "${domElement.text.slice(0, 30)}"` : ''}`;
+
+  if (!designBounds) {
+    return { element: label, domBounds: domElement, designBounds: null, diffs: [`${label}: no matching visual content found in design at this position`] };
+  }
+
+  // Subtract the search padding we added in findVisualBounds —
+  // we expanded the search area by 30px each side, so the design bounds
+  // might be up to 30px offset from the DOM element's actual position.
+  // Only report position diffs that exceed the search padding.
+  const searchPad = 30;
+  const dx = designBounds.x - domElement.x;
+  const dy = designBounds.y - domElement.y;
+  const dw = designBounds.width - domElement.width;
+  const dh = designBounds.height - domElement.height;
+
+  // Position: only report if diff exceeds the search padding noise
+  if (Math.abs(dx) > searchPad + 5) diffs.push(`${label}: shift x by ${dx > 0 ? '+' : ''}${dx}px (design at x=${designBounds.x}, code at x=${domElement.x})`);
+  if (Math.abs(dy) > searchPad + 5) diffs.push(`${label}: shift y by ${dy > 0 ? '+' : ''}${dy}px (design at y=${designBounds.y}, code at y=${domElement.y})`);
+  // Size: report if diff exceeds 2× the search padding (padding expands both sides)
+  if (Math.abs(dw) > searchPad * 2 + 10) diffs.push(`${label}: width ${dw > 0 ? '+' : ''}${dw}px (design≈${designBounds.width}px, code=${domElement.width}px)`);
+  if (Math.abs(dh) > searchPad * 2 + 10) diffs.push(`${label}: height ${dh > 0 ? '+' : ''}${dh}px (design≈${designBounds.height}px, code=${domElement.height}px)`);
+
+  // Check border-radius
+  const domRadius = parseInt(domElement.styles.borderRadius ?? '0', 10);
+  const designRadius = await detectBorderRadius(designBuffer, designBounds, bg);
+  if (Math.abs(domRadius - designRadius) > 2) {
+    diffs.push(`${label}: borderRadius design≈${designRadius}px vs code=${domRadius}px`);
+  }
+
+  return { element: label, domBounds: domElement, designBounds, diffs };
 }
 
 /**
